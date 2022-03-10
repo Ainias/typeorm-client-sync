@@ -1,0 +1,29 @@
+{
+  "name": "typeorm-client-sync",
+  "version": "0.0.1",
+  "description": "synchronization between a server and client typeorm instance",
+  "main": "index.ts",
+  "scripts": {
+    "build": "node bin/build.js & tsc",
+    "update packages": "node bin/updateCopies.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ainias/typeorm-client-sync.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ainias/typeorm-client-sync/issues"
+  },
+  "homepage": "https://github.com/Ainias/typeorm-client-sync#readme",
+  "dependencies": {
+    "reflect-metadata": "^0.1.13",
+    "ts-node": "^10.6.0",
+    "typeorm": "^0.2.45",
+    "typescript": "^4.6.2",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.7"
+  },
+  "devDependencies": {
+  }
+}
