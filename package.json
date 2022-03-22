@@ -2,8 +2,9 @@
   "name": "typeorm-client-sync",
   "version": "0.0.1",
   "description": "synchronization between a server and client typeorm instance",
-  "main": "index.ts",
+  "main": "dist/index.js",
   "scripts": {
+    "eslint": "eslint 'src/**/*.ts'",
     "build": "node bin/build.js & tsc",
     "update packages": "node bin/updateCopies.js"
   },
@@ -18,12 +19,22 @@
   },
   "homepage": "https://github.com/Ainias/typeorm-client-sync#readme",
   "dependencies": {
+    "eslint": "^8.11.0",
+    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.7",
+    "react": "^17.0.2",
     "reflect-metadata": "^0.1.13",
     "ts-node": "^10.6.0",
     "typeorm": "^0.2.45",
-    "typescript": "^4.6.2",
-    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.7"
+    "typescript": "^4.6.2"
   },
   "devDependencies": {
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^16.1.2",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-import-resolver-typescript": "^2.5.0",
+    "eslint-plugin-react": "^7.29.4",
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
+    "prettier": "^2.6.0"
   }
 }

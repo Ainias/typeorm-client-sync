@@ -1,58 +1,177 @@
-import {Connection, ConnectionOptions} from "typeorm";
-import {SyncEntity} from "./SyncEntity";
-import {createConnection} from "typeorm";
+import { Connection, ConnectionOptions, createConnection, FindManyOptions } from 'typeorm';
+import type { SyncEntity } from './SyncEntity';
+import { PromiseWithHandlers } from 'js-helper';
+import { PersistError } from './Errors/PersistError';
+import type { SyncResult } from './Errors/SyncResult';
+import type { SyncContainer } from './Sync/SyncHelper';
+import { LastQueryDate } from './LastSyncDate/LastQueryDate';
+import { QueryError } from './Errors/QueryError';
 
-type DistributiveOmit<T, K extends keyof any> = T extends any
-    ? Omit<T, K>
-    : never;
-
-export type DatabaseOptions = DistributiveOmit<ConnectionOptions, "entities"> & {
-    isClient?: boolean,
-    serverUrl?: string,
-    entities: ({ new(): SyncEntity, setDatabase(db: Database): void })[]
-}
+export type DatabaseOptions = ConnectionOptions & {
+    syncEntities: ({ new (): SyncEntity } & typeof SyncEntity)[];
+} & (
+        | {
+              isClient?: false;
+          }
+        | {
+              isClient: true;
+              persist: string | typeof Database.prototype.persistToServer;
+              query: string | typeof Database.prototype.queryServer;
+              remove: string | typeof Database.prototype.removeFromServer;
+              fetchOptions?: RequestInit;
+          }
+    );
 
 export class Database {
     private static instance?: Database;
-    static async init(options: DatabaseOptions){
-        console.log("-- before init")
-        if (!this.instance){
+    private static instancePromise = new PromiseWithHandlers<Database>();
+    private static databaseInitPromise = new PromiseWithHandlers<void>();
+    private static decoratorPromises: Promise<void>[] = [];
+
+    static addDecoratorHandler(handler: () => void) {
+        this.decoratorPromises.push(this.databaseInitPromise.then(handler));
+    }
+
+    static async init(options: DatabaseOptions) {
+        if (!this.instance) {
             this.instance = new Database(options);
             await this.instance.connect();
         }
-        console.log("-- after connect")
         return this.instance;
+    }
+
+    static getInstance() {
+        return this.instance;
+    }
+
+    static waitForInstance() {
+        return this.instancePromise;
     }
 
     private options: DatabaseOptions;
     private connection?: Connection;
+    private connectionPromise: PromiseWithHandlers<Connection> = new PromiseWithHandlers<Connection>();
 
     private constructor(options: DatabaseOptions) {
-        if (options.isClient === undefined){
-            options.isClient = options.serverUrl !== undefined;
+        this.options = { entities: [], ...options };
+    }
+
+    private async connect() {
+        this.options.entities.push(...this.options.syncEntities);
+
+        if (this.isClientDatabase() && this.options.entities.indexOf(LastQueryDate) === -1) {
+            this.options.entities.push(LastQueryDate);
         }
 
-        this.options = options;
-    }
-
-    private async connect(){
-        console.log("-- in connect")
-        this.options.entities.forEach(entity => entity.setDatabase(this));
-        console.log("-- middle connect")
+        Database.databaseInitPromise.resolve();
+        await Promise.all(Database.decoratorPromises);
         this.connection = await createConnection(this.options as ConnectionOptions);
-        console.log("-- after connect")
+        this.connectionPromise.resolve(this.connection);
+        Database.instancePromise.resolve(this);
+
+        if (this.isClientDatabase()) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            window.queryDB = async (sql: string) => {
+                const res = await this.connection.query(sql);
+                console.log(res);
+                return res;
+            };
+        }
     }
 
-    getConnection(){
+    getConnectionPromise() {
+        return this.connectionPromise;
+    }
+
+    getConnection() {
         return this.connection;
     }
 
-    isClientDatabase(){
-        console.log("LOG Database is Client?", this.options.isClient)
+    isClientDatabase() {
         return this.options.isClient === true;
     }
 
-    isServerDatabase(){
+    isServerDatabase() {
         return !this.isClientDatabase();
+    }
+
+    getEntityIdFor(classVal: typeof SyncEntity | SyncEntity) {
+        if (!('prototype' in classVal)) {
+            classVal = classVal.constructor as typeof SyncEntity;
+        }
+        return this.options.syncEntities.findIndex((val) => val === classVal);
+    }
+
+    getEntityForId(entityId: number) {
+        return this.options.syncEntities[entityId];
+    }
+
+    async persistToServer(
+        entityId: number,
+        modelId: number,
+        syncContainer: SyncContainer
+    ): Promise<SyncResult<PersistError>> {
+        const { isClient } = this.options;
+
+        if (isClient) {
+            const { persist, fetchOptions } = this.options;
+            if (typeof persist === 'string') {
+                return fetch(persist, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ entityId, modelId, syncContainer }),
+                    ...fetchOptions,
+                }).then((res) => res.json());
+            }
+            return persist(entityId, modelId, syncContainer);
+        }
+        return { success: false, error: { message: 'Database is not a client database!' } };
+    }
+
+    async queryServer(
+        entityId: number,
+        lastQueryDate: Date | undefined,
+        queryOptions: FindManyOptions
+    ): Promise<SyncResult<QueryError>> {
+        const { isClient } = this.options;
+
+        if (isClient) {
+            const { query, fetchOptions } = this.options;
+            if (typeof query === 'string') {
+                return fetch(query, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ entityId, lastQueryDate, queryOptions }),
+                    ...fetchOptions,
+                }).then((res) => res.json());
+            }
+            return query(entityId, lastQueryDate, queryOptions);
+        }
+        return { success: false, error: { message: 'Database is not a client database!' } };
+    }
+
+    async removeFromServer(entityId: number, modelId: number) {
+        const { isClient } = this.options;
+
+        if (isClient) {
+            const { remove, fetchOptions } = this.options;
+            if (typeof remove === 'string') {
+                return fetch(remove, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ entityId, modelId }),
+                    ...fetchOptions,
+                }).then((res) => res.json());
+            }
+            return remove(entityId, modelId);
+        }
+        return { success: false, error: { message: 'Database is not a client database!' } };
     }
 }
