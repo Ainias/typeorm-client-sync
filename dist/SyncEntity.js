@@ -39,6 +39,22 @@ class SyncEntity extends typeorm_1.BaseEntity {
         const relationDefinitions = (0, typeorm_1.getMetadataArgsStorage)().relations.filter((c) => bases.indexOf(c.target) !== -1);
         return { columnDefinitions, relationDefinitions };
     }
+    static findWithCallback(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let serverCalled = false;
+            if (Database_1.Database.getInstance().isClientDatabase() && !(options === null || options === void 0 ? void 0 : options.clientOnly)) {
+                this.find(options).then((serverResult) => {
+                    serverCalled = true;
+                    options.callback(serverResult, true);
+                });
+            }
+            yield this.find(Object.assign(Object.assign({}, options), { clientOnly: true })).then((clientResult) => {
+                if (!serverCalled) {
+                    options.callback(clientResult, false);
+                }
+            });
+        });
+    }
     static find(options) {
         const _super = Object.create(null, {
             delete: { get: () => super.delete },
@@ -64,10 +80,7 @@ class SyncEntity extends typeorm_1.BaseEntity {
                 const result = yield Database_1.Database.getInstance().queryServer(entityId, lastQueryDate.lastQueried, relevantSyncOptions);
                 if (result.success === true) {
                     if (result.deleted.length > 0) {
-                        // debugger;
-                        const deleted = yield _super.delete.call(this, result.deleted);
-                        // debugger;
-                        console.log('LOG-d deleted', deleted);
+                        yield _super.delete.call(this, result.deleted);
                     }
                     const modelContainer = SyncHelper_1.SyncHelper.convertToModelContainer(result.syncContainer);
                     const savePromises = [];

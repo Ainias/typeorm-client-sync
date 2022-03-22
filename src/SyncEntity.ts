@@ -19,6 +19,11 @@ export type SyncOptions<T> = T & {
     clientOnly?: boolean;
 };
 
+export type SyncWithCallbackOptions<T, Result> = T & {
+    clientOnly?: boolean;
+    callback: (value: Result, isServerData: boolean) => void;
+};
+
 export class SyncEntity extends BaseEntity {
     static getFieldDefinitions() {
         const bases = [this];
@@ -37,6 +42,21 @@ export class SyncEntity extends BaseEntity {
         );
 
         return { columnDefinitions, relationDefinitions };
+    }
+
+    static async findWithCallback<T = any>(options: SyncWithCallbackOptions<FindManyOptions, T[]>) {
+        let serverCalled = false;
+        if (Database.getInstance().isClientDatabase() && !options?.clientOnly) {
+            this.find(options).then((serverResult) => {
+                serverCalled = true;
+                options.callback(serverResult, true);
+            });
+        }
+        await this.find({ ...options, clientOnly: true }).then((clientResult) => {
+            if (!serverCalled) {
+                options.callback(clientResult, false);
+            }
+        });
     }
 
     static async find(options?: SyncOptions<FindManyOptions>) {
