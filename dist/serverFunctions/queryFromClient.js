@@ -22,15 +22,17 @@ function queryFromClient(entityId, lastQueryDate, queryOptions) {
         if (lastQueryDate) {
             if (Array.isArray(queryOptions.where)) {
                 queryOptions.where.forEach((orCondition) => (orCondition.updatedAt = (0, typeorm_1.MoreThan)(lastQueryDate)));
-                deleteOptions.where.forEach((orCondition) => (orCondition.deletedAt = (0, typeorm_1.MoreThan)(lastQueryDate)));
             }
             else {
                 queryOptions.where.updatedAt = (0, typeorm_1.MoreThan)(lastQueryDate);
-                deleteOptions.where.deletedAt = (0, typeorm_1.MoreThan)(lastQueryDate);
             }
         }
+        const compareOperator = lastQueryDate ? (0, typeorm_1.MoreThan)(lastQueryDate) : (0, typeorm_1.Not)((0, typeorm_1.IsNull)());
+        if (Array.isArray(deleteOptions.where)) {
+            deleteOptions.where.forEach((orCondition) => (orCondition.deletedAt = compareOperator));
+        }
         else {
-            deleteOptions.where.deletedAt = (0, typeorm_1.Not)((0, typeorm_1.IsNull)());
+            deleteOptions.where.deletedAt = compareOperator;
         }
         deleteOptions.withDeleted = true;
         deleteOptions.select = ['id'];

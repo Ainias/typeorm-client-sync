@@ -21,6 +21,7 @@ __exportStar(require("./Errors/SyncError"), exports);
 __exportStar(require("./Errors/SyncResult"), exports);
 __exportStar(require("./JSONType"), exports);
 __exportStar(require("./LastSyncDate/LastQueryDate"), exports);
+__exportStar(require("./Repository/SyncRepository"), exports);
 __exportStar(require("./Sync/SyncHelper"), exports);
 __exportStar(require("./SyncEntity"), exports);
 __exportStar(require("./decorators/PrimaryServerGeneratedColumn"), exports);
@@ -32,5 +33,4 @@ __exportStar(require("./index"), exports);
 __exportStar(require("./serverFunctions/persistFromClient"), exports);
 __exportStar(require("./serverFunctions/queryFromClient"), exports);
 __exportStar(require("./serverFunctions/removeOnServer"), exports);
-__exportStar(require("./useDatabase"), exports);
 //# sourceMappingURL=index.js.map

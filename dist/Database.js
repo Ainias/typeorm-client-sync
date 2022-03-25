@@ -13,6 +13,7 @@ exports.Database = void 0;
 const typeorm_1 = require("typeorm");
 const js_helper_1 = require("js-helper");
 const LastQueryDate_1 = require("./LastSyncDate/LastQueryDate");
+const SyncRepository_1 = require("./Repository/SyncRepository");
 class Database {
     constructor(options) {
         this.connectionPromise = new js_helper_1.PromiseWithHandlers();
@@ -38,31 +39,39 @@ class Database {
     }
     connect() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.options.entities.push(...this.options.syncEntities);
-            if (this.isClientDatabase() && this.options.entities.indexOf(LastQueryDate_1.LastQueryDate) === -1) {
-                this.options.entities.push(LastQueryDate_1.LastQueryDate);
+            const entities = Object.values(this.options.entities);
+            entities.push(...this.options.syncEntities);
+            if (this.isClientDatabase() && entities.indexOf(LastQueryDate_1.LastQueryDate) === -1) {
+                entities.push(LastQueryDate_1.LastQueryDate);
             }
+            this.options = Object.assign(Object.assign({}, this.options), { entities });
             Database.databaseInitPromise.resolve();
             yield Promise.all(Database.decoratorPromises);
-            this.connection = yield (0, typeorm_1.createConnection)(this.options);
-            this.connectionPromise.resolve(this.connection);
+            console.log("Source", typeorm_1.DataSource);
+            this.source = new typeorm_1.DataSource(this.options);
+            yield this.source.initialize();
+            this.connectionPromise.resolve(this.source);
             Database.instancePromise.resolve(this);
-            if (this.isClientDatabase()) {
+            if (this.isClientDatabase() && typeof window !== "undefined") {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 window.queryDB = (sql) => __awaiter(this, void 0, void 0, function* () {
-                    const res = yield this.connection.query(sql);
+                    const res = yield this.source.query(sql);
                     console.log(res);
                     return res;
                 });
             }
         });
     }
+    getRepository(entity) {
+        const repository = this.source.getRepository(entity);
+        return repository.extend(new SyncRepository_1.SyncRepository());
+    }
     getConnectionPromise() {
         return this.connectionPromise;
     }
     getConnection() {
-        return this.connection;
+        return this.source;
     }
     isClientDatabase() {
         return this.options.isClient === true;

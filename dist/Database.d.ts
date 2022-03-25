@@ -1,11 +1,12 @@
-import { Connection, ConnectionOptions, FindManyOptions } from 'typeorm';
+import { DataSource, DataSourceOptions, FindManyOptions } from 'typeorm';
 import type { SyncEntity } from './SyncEntity';
 import { PromiseWithHandlers } from 'js-helper';
 import { PersistError } from './Errors/PersistError';
 import type { SyncResult } from './Errors/SyncResult';
 import type { SyncContainer } from './Sync/SyncHelper';
 import { QueryError } from './Errors/QueryError';
-export declare type DatabaseOptions = ConnectionOptions & {
+import { SyncRepository } from "./Repository/SyncRepository";
+export declare type DatabaseOptions = DataSourceOptions & {
     syncEntities: ({
         new (): SyncEntity;
     } & typeof SyncEntity)[];
@@ -28,12 +29,13 @@ export declare class Database {
     static getInstance(): Database;
     static waitForInstance(): PromiseWithHandlers<Database>;
     private options;
-    private connection?;
+    private source?;
     private connectionPromise;
     private constructor();
     private connect;
-    getConnectionPromise(): PromiseWithHandlers<Connection>;
-    getConnection(): Connection;
+    getRepository(entity: typeof SyncEntity): import("typeorm").Repository<SyncEntity> & SyncRepository<SyncEntity>;
+    getConnectionPromise(): PromiseWithHandlers<DataSource>;
+    getConnection(): DataSource;
     isClientDatabase(): boolean;
     isServerDatabase(): boolean;
     getEntityIdFor(classVal: typeof SyncEntity | SyncEntity): number;

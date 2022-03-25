@@ -1,7 +1,7 @@
-import { FindManyOptions, IsNull, MoreThan, Not } from 'typeorm';
-import { Database } from '../Database';
-import { ModelContainer, SyncHelper } from '../Sync/SyncHelper';
-import { JsonHelper } from 'js-helper';
+import {FindManyOptions, IsNull, MoreThan, Not} from 'typeorm';
+import {Database} from '../Database';
+import {ModelContainer, SyncHelper} from '../Sync/SyncHelper';
+import {JsonHelper} from 'js-helper';
 
 export async function queryFromClient(
     entityId: number,
@@ -14,14 +14,18 @@ export async function queryFromClient(
     if (lastQueryDate) {
         if (Array.isArray(queryOptions.where)) {
             queryOptions.where.forEach((orCondition) => (orCondition.updatedAt = MoreThan(lastQueryDate)));
-            deleteOptions.where.forEach((orCondition) => (orCondition.deletedAt = MoreThan(lastQueryDate)));
         } else {
             queryOptions.where.updatedAt = MoreThan(lastQueryDate);
-            deleteOptions.where.deletedAt = MoreThan(lastQueryDate);
         }
-    } else {
-        deleteOptions.where.deletedAt = Not(IsNull());
     }
+
+    const compareOperator = lastQueryDate ? MoreThan(lastQueryDate) : Not(IsNull());
+    if (Array.isArray(deleteOptions.where)) {
+        deleteOptions.where.forEach((orCondition) => (orCondition.deletedAt = compareOperator));
+    } else {
+        deleteOptions.where.deletedAt = compareOperator;
+    }
+
     deleteOptions.withDeleted = true;
     deleteOptions.select = ['id'];
 
