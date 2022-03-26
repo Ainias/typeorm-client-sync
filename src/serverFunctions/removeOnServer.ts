@@ -1,9 +1,9 @@
 import { Database } from '../Database';
-import { getRepository } from 'typeorm';
+import {getSyncRepository} from "../Repository/SyncRepository";
 
 export async function removeOnServer(entityId: number, modelId: number) {
-    const entity = Database.getInstance().getEntityForId(entityId);
-    const repository = getRepository(entity);
+    const entity = Database.getInstance().getModelForId(entityId);
+    const repository = getSyncRepository(entity);
     await repository.softDelete(modelId);
     return true;
 }

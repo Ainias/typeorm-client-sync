@@ -1,4 +1,4 @@
-import type { SyncEntity } from '../SyncEntity';
+import type { SyncModel } from '../SyncModel';
 import { PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { PrimaryGeneratedColumnNumericOptions } from 'typeorm/decorator/options/PrimaryGeneratedColumnNumericOptions';
 import { PrimaryGeneratedColumnUUIDOptions } from 'typeorm/decorator/options/PrimaryGeneratedColumnUUIDOptions';
@@ -35,7 +35,7 @@ export function PrimaryServerGeneratedColumn({
     options,
     type,
 }: PrimaryServerGeneratedColumnOptions = {}) {
-    return function decorator(object: SyncEntity, propertyName: string) {
+    return function decorator(object: SyncModel, propertyName: string) {
         Database.addDecoratorHandler(() => {
             if (Database.getInstance().isServerDatabase()) {
                 switch (strategy) {

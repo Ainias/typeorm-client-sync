@@ -1,16 +1,15 @@
 import {DataSource, DataSourceOptions, FindManyOptions} from 'typeorm';
-import type {SyncEntity} from './SyncEntity';
+import type {SyncModel} from './SyncModel';
 import {PromiseWithHandlers} from 'js-helper';
 import {PersistError} from './Errors/PersistError';
 import type {SyncResult} from './Errors/SyncResult';
 import type {SyncContainer} from './Sync/SyncHelper';
 import {LastQueryDate} from './LastSyncDate/LastQueryDate';
 import {QueryError} from './Errors/QueryError';
-import {SyncRepository} from "./Repository/SyncRepository";
 
 
 export type DatabaseOptions = DataSourceOptions & {
-    syncEntities: ({ new(): SyncEntity } & typeof SyncEntity)[];
+    syncModels: ({ new(): SyncModel } & typeof SyncModel)[];
 } & (
     | {
     isClient?: false;
@@ -42,6 +41,13 @@ export class Database {
         return this.instance;
     }
 
+    static async destroy() {
+        if (this.instance) {
+            await this.instance.getConnection().destroy();
+            this.instance = undefined;
+        }
+    }
+
     static getInstance() {
         return this.instance;
     }
@@ -60,7 +66,7 @@ export class Database {
 
     private async connect() {
         const entities = Object.values(this.options.entities);
-        entities.push(...this.options.syncEntities);
+        entities.push(...this.options.syncModels);
 
         if (this.isClientDatabase() && entities.indexOf(LastQueryDate) === -1) {
             entities.push(LastQueryDate);
@@ -69,7 +75,6 @@ export class Database {
 
         Database.databaseInitPromise.resolve();
         await Promise.all(Database.decoratorPromises);
-        console.log("Source", DataSource);
 
         this.source = new DataSource(this.options);
         await this.source.initialize();
@@ -85,11 +90,6 @@ export class Database {
                 return res;
             };
         }
-    }
-
-    getRepository(entity: typeof SyncEntity) {
-        const repository = this.source.getRepository(entity);
-        return repository.extend(new SyncRepository());
     }
 
     getConnectionPromise() {
@@ -108,15 +108,15 @@ export class Database {
         return !this.isClientDatabase();
     }
 
-    getEntityIdFor(classVal: typeof SyncEntity | SyncEntity) {
-        if (!('prototype' in classVal)) {
-            classVal = classVal.constructor as typeof SyncEntity;
+    getModelIdFor(model: typeof SyncModel) {
+        if (!('prototype' in model)) {
+            model = model.constructor as typeof SyncModel;
         }
-        return this.options.syncEntities.findIndex((val) => val === classVal);
+        return this.options.syncModels.findIndex((val) => val === model);
     }
 
-    getEntityForId(entityId: number) {
-        return this.options.syncEntities[entityId];
+    getModelForId(modelId: number) {
+        return this.options.syncModels[modelId];
     }
 
     async persistToServer(

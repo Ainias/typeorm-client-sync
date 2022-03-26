@@ -1,7 +1,8 @@
 import {FindManyOptions, IsNull, MoreThan, Not} from 'typeorm';
 import {Database} from '../Database';
-import {ModelContainer, SyncHelper} from '../Sync/SyncHelper';
+import {EntityContainer, SyncHelper} from '../Sync/SyncHelper';
 import {JsonHelper} from 'js-helper';
+import {getSyncRepository} from "../Repository/SyncRepository";
 
 export async function queryFromClient(
     entityId: number,
@@ -29,21 +30,22 @@ export async function queryFromClient(
     deleteOptions.withDeleted = true;
     deleteOptions.select = ['id'];
 
-    const Entity = Database.getInstance().getEntityForId(entityId);
+    const model = Database.getInstance().getModelForId(entityId);
     const newLastQueryDate = new Date();
-    const modelsPromise = Entity.find(queryOptions);
-    const deletedPromise = Entity.find(deleteOptions);
+    const repository = getSyncRepository(model);
+    const entityPromise = repository.find(queryOptions);
+    const deletedPromise = repository.find(deleteOptions);
 
-    const models = await modelsPromise;
-    const modelContainer: ModelContainer = {};
-    models.forEach((model) => {
-        SyncHelper.addToModelContainer(model, modelContainer);
+    const entities = await entityPromise;
+    const entityContainer: EntityContainer = {};
+    entities.forEach((entity) => {
+        SyncHelper.addToEntityContainer(entity, entityContainer);
     });
     const deleted = (await deletedPromise).map((m) => m.id);
 
     return {
         lastQueryDate: newLastQueryDate,
         deleted,
-        syncContainer: SyncHelper.convertToSyncContainer(modelContainer),
+        syncContainer: SyncHelper.convertToSyncContainer(entityContainer),
     };
 }

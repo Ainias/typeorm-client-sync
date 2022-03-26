@@ -1,9 +1,9 @@
-import type { SyncEntity } from '../SyncEntity';
+import type { SyncModel } from '../SyncModel';
 import { BeforeInsert } from 'typeorm';
 import { Database } from '../Database';
 
 export function ServerBeforeInsert() {
-    return function decorator(object: SyncEntity, propertyName: string) {
+    return function decorator(object: SyncModel, propertyName: string) {
         Database.addDecoratorHandler(() => {
             if (Database.getInstance().isServerDatabase()) {
                 BeforeInsert()(object, propertyName);
