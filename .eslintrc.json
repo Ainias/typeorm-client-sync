@@ -5,7 +5,6 @@
   },
   "extends": [
     "eslint:recommended",
-    "plugin:react/recommended",
     "airbnb",
     "plugin:@typescript-eslint/recommended",
     "prettier",
@@ -23,9 +22,7 @@
     "project": "./tsconfig.json"
   },
   "plugins": [
-    "react",
-    "@typescript-eslint",
-    "react-hooks"
+    "@typescript-eslint"
   ],
   "rules": {
     "linebreak-style": [
@@ -35,24 +32,6 @@
     "semi": [
       "error",
       "always"
-    ],
-    "react/jsx-uses-react": [
-      "error"
-    ],
-    "react/jsx-uses-vars": [
-      "error"
-    ],
-    "react-hooks/rules-of-hooks": "error",
-    // Checks rules of Hooks
-    "react-hooks/exhaustive-deps": "warn",
-    // Checks effect dependencies
-    "react/jsx-filename-extension": [
-      "warn",
-      {
-        "extensions": [
-          ".tsx"
-        ]
-      }
     ],
     "import/extensions": [
       "error",
@@ -75,25 +54,9 @@
         "exceptAfterSingleLine": true
       }
     ],
-    "react/sort-comp": ["warn", {
-      "order": [
-        "static-variables",
-        "instance-variables",
-        "static-methods",
-        "lifecycle",
-        "render",
-        "/^render.+$/",
-        "instance-methods",
-        "everything-else"
-      ]
-    }],
     "no-return-assign": ["error", "except-parens"],
 
     "import/no-extraneous-dependencies": ["error", {"devDependencies": ["src/client/**/*.tsx"]}],
-    "react/destructuring-assignment": ["error", "always", { "ignoreClassFields": true }],
-    "react/state-in-constructor": ["error", "never"],
-
-
 
     "no-promise-executor-return": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
@@ -103,20 +66,14 @@
     "@typescript-eslint/no-explicit-any": "off",
     "import/order": "off",
     "import/prefer-default-export": "off",
-    "react/prop-types": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "react/jsx-props-no-spreading": "off",
-    "react/jsx-boolean-value": "off",
     "no-plusplus": "off",
     "no-param-reassign": "off",
     "default-case": "off",
     "jsx-a11y/click-events-have-key-events": "off"
   },
   "settings": {
-    "react": {
-      "version": "detect"
-    },
     "import/resolver": {
       "typescript": {
         "extensions": [

@@ -1,5 +1,5 @@
 import type { SyncError } from './SyncError';
-import type { SyncContainer } from '../Sync/SyncHelper';
+import {SyncContainer} from "../Sync/SyncTypes";
 
 export type SyncResult<Error extends SyncError> =
     | {

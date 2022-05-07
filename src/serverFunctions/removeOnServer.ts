@@ -1,9 +1,9 @@
 import { Database } from '../Database';
-import {getSyncRepository} from "../Repository/SyncRepository";
+import {waitForSyncRepository} from "../Repository/SyncRepository";
 
-export async function removeOnServer(entityId: number, modelId: number) {
-    const entity = Database.getInstance().getModelForId(entityId);
-    const repository = getSyncRepository(entity);
-    await repository.softDelete(modelId);
+export async function removeOnServer(modelId: number, entityId: number) {
+    const entity = Database.getModelForId(modelId);
+    const repository = await waitForSyncRepository(entity);
+    await repository.softDelete(entityId);
     return true;
 }

@@ -1,16 +1,19 @@
-import {FindManyOptions, IsNull, MoreThan, Not} from 'typeorm';
+import {FindManyOptions, FindOneOptions, IsNull, MoreThan, Not} from 'typeorm';
 import {Database} from '../Database';
-import {EntityContainer, SyncHelper} from '../Sync/SyncHelper';
+import {SyncHelper} from '../Sync/SyncHelper';
 import {JsonHelper} from 'js-helper';
-import {getSyncRepository} from "../Repository/SyncRepository";
+import {waitForSyncRepository} from "../Repository/SyncRepository";
+import {EntityContainer} from "../Sync/SyncTypes";
 
 export async function queryFromClient(
-    entityId: number,
+    modelId: number,
     lastQueryDate: Date | undefined,
-    queryOptions: FindManyOptions
+    queryOptions: FindManyOptions | FindOneOptions,
+    syncOne = false
 ) {
-    queryOptions.where = queryOptions.where ?? {};
     const deleteOptions = JsonHelper.deepCopy(queryOptions);
+    queryOptions.where = SyncHelper.convertJsonToWhere(queryOptions.where ?? {});
+    deleteOptions.where = SyncHelper.convertJsonToWhere(deleteOptions.where ?? {});
 
     if (lastQueryDate) {
         if (Array.isArray(queryOptions.where)) {
@@ -30,11 +33,13 @@ export async function queryFromClient(
     deleteOptions.withDeleted = true;
     deleteOptions.select = ['id'];
 
-    const model = Database.getInstance().getModelForId(entityId);
+    const model = Database.getModelForId(modelId);
     const newLastQueryDate = new Date();
-    const repository = getSyncRepository(model);
-    const entityPromise = repository.find(queryOptions);
-    const deletedPromise = repository.find(deleteOptions);
+    const repository = await waitForSyncRepository(model);
+
+
+    const entityPromise = syncOne ? repository.findOne(queryOptions as FindOneOptions).then(entity => entity ? [entity] : []) : repository.find(queryOptions as FindManyOptions);
+    const deletedPromise = syncOne ? repository.findOne(deleteOptions as FindOneOptions).then(entity => entity ? [entity] : []) : repository.find(deleteOptions as FindManyOptions);
 
     const entities = await entityPromise;
     const entityContainer: EntityContainer = {};

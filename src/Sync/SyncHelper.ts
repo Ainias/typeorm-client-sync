@@ -1,15 +1,11 @@
-import { Database } from '../Database';
-import { JSONObject } from '../JSONType';
-import type { SyncModel } from '../SyncModel';
-import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
-import {getMetadataArgsStorage} from "typeorm";
-
-export type EntityContainer = Record<number, Record<number, SyncModel>>;
-export type SyncContainer = Record<
-    number,
-    Record<number, { columns: { id: number } & JSONObject; relations: JSONObject }>
->;
-export type IdContainer = Record<number, Record<number, number>>;
+/* eslint-disable no-underscore-dangle */
+import {Database} from '../Database';
+import type {SyncModel} from '../SyncModel';
+import {RelationMetadataArgs} from 'typeorm/metadata-args/RelationMetadataArgs';
+import {FindOperator, FindOperatorType, FindOptionsWhere, getMetadataArgsStorage} from "typeorm";
+import {JsonOperators} from "./JsonOperators";
+import {EntityContainer, IdContainer, MultipleSyncResults, SingleSyncResult, SyncContainer} from "./SyncTypes";
+import {JSONObject} from "js-helper";
 
 export class SyncHelper {
     static getFieldDefinitionsFor(model: typeof SyncModel) {
@@ -19,7 +15,6 @@ export class SyncHelper {
             currentBase = Object.getPrototypeOf(currentBase);
             bases.push(currentBase);
         }
-
         const columnDefinitions = getMetadataArgsStorage().columns.filter(
             (c) => bases.indexOf(c.target as typeof SyncModel) !== -1
         );
@@ -30,7 +25,7 @@ export class SyncHelper {
         return {columnDefinitions, relationDefinitions};
     }
 
-    static addToEntityContainer<T extends  SyncModel>(
+    static addToEntityContainer<T extends SyncModel>(
         entity: T,
         modelContainer: EntityContainer,
         depth?: number,
@@ -46,7 +41,7 @@ export class SyncHelper {
             })();
         }
 
-        const classId = Database.getInstance().getModelIdFor(entity.constructor as typeof SyncModel);
+        const classId = Database.getModelIdFor(entity.constructor as typeof SyncModel);
         let objMap = modelContainer[classId];
 
         if (!objMap) {
@@ -63,14 +58,14 @@ export class SyncHelper {
         }
         objMap[entity.id] = entity;
 
-        const { relationDefinitions } = this.getFieldDefinitionsFor(entity.constructor as typeof SyncModel);
+        const {relationDefinitions} = this.getFieldDefinitionsFor(entity.constructor as typeof SyncModel);
 
         const childDepth = depth ? depth - 1 : depth;
         relationDefinitions.reduce((obj, c) => {
             switch (c.relationType) {
                 case 'many-to-many':
                 case 'one-to-many': {
-                    if (childDepth === undefined || childDepth > 0) {
+                    if ((childDepth === undefined || childDepth > 0) && Array.isArray(entity[c.propertyName])) {
                         entity[c.propertyName].forEach((e: SyncModel) => {
                             this.addToEntityContainer(e, modelContainer, childDepth, idGenerator);
                         });
@@ -101,8 +96,8 @@ export class SyncHelper {
         Object.entries(entityContainer).forEach(([modelId, modelMap]) => {
             syncContainer[modelId] = {};
             const syncMap = syncContainer[Number(modelId)];
-            const model = Database.getInstance().getModelForId(Number(modelId));
-            const { columnDefinitions, relationDefinitions } = this.getFieldDefinitionsFor(model);
+            const model = Database.getModelForId(Number(modelId));
+            const {columnDefinitions, relationDefinitions} = this.getFieldDefinitionsFor(model);
 
             Object.entries(modelMap).forEach(([entityId, entity]) => {
                 const columns = columnDefinitions.reduce(
@@ -110,7 +105,7 @@ export class SyncHelper {
                         obj[c.propertyName] = entity[c.propertyName];
                         return obj;
                     },
-                    { id: 0 } as Record<string, any> & { id: number }
+                    {id: 0} as Record<string, any> & { id: number }
                 );
 
                 const relations = relationDefinitions.reduce((obj, c) => {
@@ -128,6 +123,8 @@ export class SyncHelper {
                         case 'one-to-one': {
                             if (entity[c.propertyName]) {
                                 obj[c.propertyName] = entity[c.propertyName].id;
+                            } else if (entity[c.propertyName] === null) {
+                                obj[c.propertyName] = null;
                             }
                             break;
                         }
@@ -135,7 +132,7 @@ export class SyncHelper {
                     return obj;
                 }, {} as Record<string, any>);
 
-                syncMap[Number(entityId)] = { columns, relations };
+                syncMap[Number(entityId)] = {columns, relations};
             });
         });
 
@@ -146,7 +143,10 @@ export class SyncHelper {
         const entityContainer: EntityContainer = {};
 
         Object.entries(syncContainer).forEach(([entityId, modelsData]) => {
-            const Model = Database.getInstance().getModelForId(Number(entityId));
+            const Model = Database.getModelForId(Number(entityId));
+            const {columnDefinitions} = SyncHelper.getFieldDefinitionsFor(Model);
+            const dateColumns = columnDefinitions.filter(v => v.mode === "regular" && (v.options.type === "date" || v.options.type === Date)).map(v => v.propertyName);
+
             entityContainer[entityId] = {};
 
             const entities = entityContainer[entityId];
@@ -155,6 +155,10 @@ export class SyncHelper {
                 entities[Number(modelId)] = entity;
 
                 Object.assign(entity, modelData.columns);
+                dateColumns.forEach(dateColumn => {
+                    entity[dateColumn] = new Date(entity[dateColumn]);
+                });
+
                 if (Number(modelId) < 0) {
                     entity.id = undefined;
                 }
@@ -163,23 +167,25 @@ export class SyncHelper {
 
         Object.entries(syncContainer).forEach(([modelId, modelsData]) => {
             const entities = entityContainer[modelId];
-            const model = Database.getInstance().getModelForId(Number(modelId));
+            const model = Database.getModelForId(Number(modelId));
 
             const relations = this.getFieldDefinitionsFor(model).relationDefinitions.reduce((obj, rel) => {
                 obj[rel.propertyName] = rel;
                 return obj;
             }, {} as Record<string, RelationMetadataArgs>);
 
-            Object.entries(modelsData).forEach(([entityId, modelData]) => {
+            Object.entries(modelsData).forEach(([entityId, entityData]) => {
                 const entity = entities[entityId];
-                Object.entries(modelData.relations).forEach(([relationName, value]) => {
-                    const otherEntity = (relations[relationName].type as () => typeof SyncModel)();
-                    const otherEntityId = Database.getInstance().getModelIdFor(otherEntity);
+                Object.entries(entityData.relations).forEach(([relationName, value]) => {
+                    const otherModel = (relations[relationName].type as () => typeof SyncModel)();
+                    const otherModelId = Database.getModelIdFor(otherModel);
 
                     if (Array.isArray(value)) {
-                        entity[relationName] = value.map((id) => entityContainer[otherEntityId][Number(id)]);
+                        entity[relationName] = value.map((id) => entityContainer[otherModelId][Number(id)]);
+                    } else if (value) {
+                        entity[relationName] = entityContainer[otherModelId][Number(value)];
                     } else {
-                        entity[relationName] = entityContainer[otherEntityId][Number(value)];
+                        entity[relationName] = value;
                     }
                 });
             });
@@ -209,6 +215,41 @@ export class SyncHelper {
         return SyncHelper.convertToSyncContainer(modelContainer);
     }
 
+    static toServerResult(entity: SyncModel, depth?: number): SingleSyncResult
+    static toServerResult(entity: SyncModel[], depth?: number): MultipleSyncResults
+    static toServerResult(entity: SyncModel | SyncModel[], depth?: number) {
+        const modelContainer: EntityContainer = {};
+        if (Array.isArray(entity)) {
+            entity.forEach(e => SyncHelper.addToEntityContainer(e, modelContainer, depth));
+        } else {
+            SyncHelper.addToEntityContainer(entity, modelContainer, depth);
+        }
+        const syncContainer = SyncHelper.convertToSyncContainer(modelContainer);
+        if (Array.isArray(entity)) {
+            const ids = entity.map(e => e.id);
+            return {syncContainer, ids};
+        }
+        const {id} = entity;
+        return {syncContainer, id};
+    }
+
+    static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: SingleSyncResult): InstanceType<ModelType> | null
+    static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: MultipleSyncResults): InstanceType<ModelType>[]
+    static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: SingleSyncResult | MultipleSyncResults) {
+        const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
+        const modelId = Database.getModelIdFor(model);
+        if (!modelContainer[modelId]) {
+            return ("ids" in result) ? [] : null;
+        }
+        if ("ids" in result) {
+            if (modelContainer[modelId]) {
+                return result.ids.map(id => modelContainer[modelId][id]);
+            }
+            return [];
+        }
+        return modelContainer[modelId][result.id] ?? null;
+    }
+
     static generateIdMap(modelContainer: EntityContainer | SyncContainer) {
         return Object.entries(modelContainer).reduce((idContainer, [entityId, models]) => {
             idContainer[Number(entityId)] = Object.entries(models).reduce(
@@ -223,5 +264,49 @@ export class SyncHelper {
             );
             return idContainer;
         }, {} as IdContainer);
+    }
+
+    static convertWhereToJson(where: FindOptionsWhere<any>) {
+        return Object.entries(where).reduce((obj, [key, val]) => {
+            if (val instanceof FindOperator) {
+                let {value} = val;
+                if (typeof value === "object" && !Array.isArray(value)) {
+                    value = this.convertWhereToJson(value);
+                }
+                obj[key] = {
+                    ___JSON_OPERATOR: JsonOperators.FIND_OPERATOR,
+                    args: [val.type, value, val.useParameter, val.multipleParameters]
+                };
+            } else if (typeof val === "object" && !Array.isArray(val)) {
+                obj[key] = this.convertWhereToJson(val);
+            } else {
+                obj[key] = val;
+            }
+            return obj;
+        }, {} as JSONObject);
+    }
+
+    static convertJsonToWhere(json: JSONObject) {
+        if ("___JSON_OPERATOR" in json) {
+            switch (json.___JSON_OPERATOR) {
+                case JsonOperators.FIND_OPERATOR: {
+                    let value = json.args[1];
+                    const [type, , useParameter, multipleParameters] = json.args as [FindOperatorType, any, boolean, boolean];
+                    if (typeof value === "object" && !Array.isArray(value)) {
+                        value = this.convertJsonToWhere(value);
+                    }
+                    return new FindOperator(type, value, useParameter, multipleParameters);
+                }
+            }
+        }
+
+        return Object.entries(json).reduce((obj, [key, val]) => {
+            if (typeof val === "object" && !Array.isArray(val)) {
+                obj[key] = this.convertJsonToWhere(val);
+            } else {
+                obj[key] = val;
+            }
+            return obj;
+        }, {} as FindOptionsWhere<any>);
     }
 }
