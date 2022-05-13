@@ -93,14 +93,15 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             if (options?.skip || options?.take) {
                 relevantSyncOptions.order = options?.order;
             }
+            const modelId = Database.getModelIdFor(model);
 
-            let lastQueryDate = await LastQueryDate.findOne({where: {query: JSON.stringify(relevantSyncOptions)}});
+            let lastQueryDate = await LastQueryDate.findOne({where: {query: JSON.stringify(relevantSyncOptions), modelId}});
             if (!lastQueryDate) {
                 lastQueryDate = new LastQueryDate();
                 lastQueryDate.query = JSON.stringify(relevantSyncOptions);
+                lastQueryDate.modelId = modelId;
             }
 
-            const modelId = Database.getModelIdFor(model);
             const result = await db.queryServer(
                 modelId,
                 lastQueryDate.lastQueried,

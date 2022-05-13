@@ -7,4 +7,7 @@ export class LastQueryDate extends BaseEntity {
 
     @Column()
     lastQueried?: Date;
+
+    @Column()
+    modelId?: number;
 }
