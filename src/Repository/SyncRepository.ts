@@ -79,7 +79,9 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
                 throw new Error(result.error.message);
             }
         }
-        return save(entity as DeepPartial<InstanceType<Model>>, options, true);
+        if (db.isServerDatabase()) {
+            await save(entity as DeepPartial<InstanceType<Model>>, options, true);
+        }
     }
 
     async function sync(options?: FindManyOptions<InstanceType<Model>>) {
@@ -95,7 +97,12 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             }
             const modelId = Database.getModelIdFor(model);
 
-            let lastQueryDate = await LastQueryDate.findOne({where: {query: JSON.stringify(relevantSyncOptions), modelId}});
+            let lastQueryDate = await LastQueryDate.findOne({
+                where: {
+                    query: JSON.stringify(relevantSyncOptions),
+                    modelId
+                }
+            });
             if (!lastQueryDate) {
                 lastQueryDate = new LastQueryDate();
                 lastQueryDate.query = JSON.stringify(relevantSyncOptions);
@@ -207,19 +214,19 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             await executeWithSyncAndCallbacks(repository.findOne, [options], options);
         },
 
-        async initialFind(options?: FindManyOptions<InstanceType<Model>>){
+        async initialFind(options?: FindManyOptions<InstanceType<Model>>) {
             return new MultipleInitialResult(model, await repository.find(options));
         },
 
-        async initialFindOne(options: FindOneOptions<InstanceType<Model>>){
+        async initialFindOne(options: FindOneOptions<InstanceType<Model>>) {
             return new SingleInitialResult(model, await repository.findOne(options));
         },
 
-        async initialFindOneBy(options: FindOptionsWhere<InstanceType<Model>>|FindOptionsWhere<InstanceType<Model>>[]){
+        async initialFindOneBy(options: FindOptionsWhere<InstanceType<Model>> | FindOptionsWhere<InstanceType<Model>>[]) {
             return new SingleInitialResult(model, await repository.findOneBy(options));
         },
 
-        async initialFindOneById(id: number){
+        async initialFindOneById(id: number) {
             return new SingleInitialResult(model, await repository.findOneBy({id} as FindOptionsWhere<InstanceType<Model>>));
         }
     };

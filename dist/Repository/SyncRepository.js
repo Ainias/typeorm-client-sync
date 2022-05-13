@@ -62,7 +62,9 @@ function createSyncRepositoryExtension(model, repository, db) {
                     throw new Error(result.error.message);
                 }
             }
-            return save(entity, options, true);
+            if (db.isServerDatabase()) {
+                yield save(entity, options, true);
+            }
         });
     }
     function sync(options) {
@@ -78,12 +80,18 @@ function createSyncRepositoryExtension(model, repository, db) {
                 if ((options === null || options === void 0 ? void 0 : options.skip) || (options === null || options === void 0 ? void 0 : options.take)) {
                     relevantSyncOptions.order = options === null || options === void 0 ? void 0 : options.order;
                 }
-                let lastQueryDate = yield LastQueryDate_1.LastQueryDate.findOne({ where: { query: JSON.stringify(relevantSyncOptions) } });
+                const modelId = Database_1.Database.getModelIdFor(model);
+                let lastQueryDate = yield LastQueryDate_1.LastQueryDate.findOne({
+                    where: {
+                        query: JSON.stringify(relevantSyncOptions),
+                        modelId
+                    }
+                });
                 if (!lastQueryDate) {
                     lastQueryDate = new LastQueryDate_1.LastQueryDate();
                     lastQueryDate.query = JSON.stringify(relevantSyncOptions);
+                    lastQueryDate.modelId = modelId;
                 }
-                const modelId = Database_1.Database.getModelIdFor(model);
                 const result = yield db.queryServer(modelId, lastQueryDate.lastQueried, relevantSyncOptions);
                 if (result.success === true) {
                     if (result.deleted.length > 0) {

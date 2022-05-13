@@ -21,6 +21,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
 ], LastQueryDate.prototype, "lastQueried", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
+], LastQueryDate.prototype, "modelId", void 0);
 LastQueryDate = __decorate([
     (0, typeorm_1.Entity)()
 ], LastQueryDate);
