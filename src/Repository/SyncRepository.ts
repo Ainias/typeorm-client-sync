@@ -11,7 +11,7 @@ import {Database} from "../Database";
 import {LastQueryDate} from "../LastSyncDate/LastQueryDate";
 import {SyncHelper} from "../Sync/SyncHelper";
 import {EntityContainer} from "../Sync/SyncTypes";
-import {JSONObject, JSONValue} from "js-helper";
+import {JSONValue, PromiseWithHandlers} from "js-helper";
 import {MultipleInitialResult} from "../InitialResult/MultipleInitialResult";
 import {SingleInitialResult} from "../InitialResult/SingleInitialResult";
 
@@ -23,6 +23,8 @@ export type SyncOptions<T> = T & {
     runOnServer?: boolean;
     extraData?: JSONValue
 };
+
+export type SyncJsonOptions = FindManyOptions & { modelId: number };
 
 export type SyncWithCallbackOptions<T, Result> = SyncOptions<T> & {
     runOnClient?: boolean;
@@ -65,7 +67,6 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
     async function saveAndSync(entities: InstanceType<Model>[], options?: SyncOptions<SaveOptions> & { reload: false, clientOnly: true })
     async function saveAndSync(entity: InstanceType<Model>, options?: SyncOptions<SaveOptions> & { reload: false })
     async function saveAndSync(entity: InstanceType<Model> | InstanceType<Model>[], options?: SyncOptions<SaveOptions> & { reload: false }) {
-
         if (db.isClientDatabase() && options?.runOnServer !== false && !Array.isArray(entity)) {
             const modelContainer: EntityContainer = {};
             SyncHelper.addToEntityContainer(entity, modelContainer);
@@ -85,60 +86,68 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
     }
 
     async function sync(options?: FindManyOptions<InstanceType<Model>>) {
-        if (db.isClientDatabase()) {
-            const relevantSyncOptions: JSONObject = {
-                where: SyncHelper.convertWhereToJson(options?.where ?? {}),
-                relations: options?.relations,
-                skip: options?.skip,
-                take: options?.take,
-            };
-            if (options?.skip || options?.take) {
-                relevantSyncOptions.order = options?.order;
-            }
-            const modelId = Database.getModelIdFor(model);
+        if (db.isServerDatabase()) {
+            return;
+        }
 
-            let lastQueryDate = await LastQueryDate.findOne({
-                where: {
-                    query: JSON.stringify(relevantSyncOptions),
-                    modelId
-                }
+        const modelId = Database.getModelIdFor(model);
+        const relevantSyncOptions: SyncJsonOptions = {
+            where: SyncHelper.convertWhereToJson(options?.where ?? {}),
+            relations: options?.relations,
+            skip: options?.skip,
+            take: options?.take,
+            modelId,
+        };
+
+        if (options?.skip || options?.take) {
+            relevantSyncOptions.order = options?.order;
+        }
+
+        const stringifiedSyncOptions = JSON.stringify(relevantSyncOptions);
+        let lastQueryDate = await LastQueryDate.findOne({
+            where: {
+                query: stringifiedSyncOptions
+            }
+        });
+
+        if (!lastQueryDate) {
+            lastQueryDate = new LastQueryDate();
+            lastQueryDate.query = stringifiedSyncOptions;
+        }
+
+        const result = await db.queryServer(
+            lastQueryDate.lastQueried,
+            relevantSyncOptions,
+        );
+
+        if (result.success === true) {
+            if (result.deleted.length > 0) {
+                await repository.delete(result.deleted);
+            }
+            const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
+            const savePromises = [];
+            Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
+                const syncedModel = Database.getModelForId(Number(queriedModelId));
+                savePromises.push(waitForSyncRepository(syncedModel).then(modelRepository => {
+                    const entities = Object.values(entityMap);
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    return modelRepository.save(entities, {reload: false}, true);
+                }));
             });
-            if (!lastQueryDate) {
-                lastQueryDate = new LastQueryDate();
-                lastQueryDate.query = JSON.stringify(relevantSyncOptions);
-                lastQueryDate.modelId = modelId;
-            }
 
-            const result = await db.queryServer(
-                modelId,
-                lastQueryDate.lastQueried,
-                relevantSyncOptions,
-            );
-
-            if (result.success === true) {
-                if (result.deleted.length > 0) {
-                    await repository.delete(result.deleted);
-                }
-                const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
-                const savePromises = [];
-                Object.entries(modelContainer).forEach(([queriedEntityId, modelMap]) => {
-                    const syncedEntity = Database.getModelForId(Number(queriedEntityId));
-                    savePromises.push(waitForSyncRepository(syncedEntity).then(entityRepository => {
-                        const vals = Object.values(modelMap);
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        return entityRepository.save(vals, {reload: false}, true);
-                    }));
-                });
-
-                lastQueryDate.lastQueried = new Date(result.lastQueryDate);
-                Promise.all(savePromises).catch(e => console.log("Sync Error", e));
+            lastQueryDate.lastQueried = new Date(result.lastQueryDate);
+            try {
                 await Promise.all(savePromises);
                 await lastQueryDate.save();
-            } else {
-                throw new Error(result.error.message);
+            }catch (e){
+                console.error("Sync Error", e);
+                throw e;
             }
+        } else {
+            throw new Error(result.error.message);
         }
+
     }
 
     async function executeWithSyncAndCallbacks<Method extends FunctionProperties2<typeof repository>>(method: Method, params: Parameters<Method>, syncOptions: SyncWithCallbackOptions<FindManyOptions<InstanceType<Model>>, Awaited<ReturnType<Method>>>) {
@@ -151,7 +160,8 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
                 serverCalled = true;
                 syncOptions.callback(serverResult, true);
             }).catch(e => {
-                syncOptions?.errorCallback(e, true);
+                console.error(e);
+                syncOptions?.errorCallback?.(e, true);
             }));
         }
 
@@ -177,24 +187,6 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         save,
         remove,
 
-        // getFieldDefinitions() {
-        //     const bases: (typeof SyncModel)[] = [model];
-        //     let currentBase = model;
-        //     while (currentBase.prototype) {
-        //         currentBase = Object.getPrototypeOf(currentBase);
-        //         bases.push(currentBase);
-        //     }
-        //
-        //     const columnDefinitions = getMetadataArgsStorage().columns.filter(
-        //         (c) => bases.indexOf(c.target as typeof SyncModel) !== -1
-        //     );
-        //     const relationDefinitions = getMetadataArgsStorage().relations.filter(
-        //         (c) => bases.indexOf(c.target as typeof SyncModel) !== -1
-        //     );
-        //
-        //     return {columnDefinitions, relationDefinitions};
-        // },
-
         async removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>) {
             if (db.isClientDatabase() && options?.runOnServer !== false) {
                 const modelId = Database.getModelIdFor(model);
@@ -208,6 +200,32 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
 
         async findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<Model>>, InstanceType<Model>[]>) {
             await executeWithSyncAndCallbacks(repository.find, [options], options);
+        },
+
+        async promiseFindAndSync(options: FindManyOptions<InstanceType<Model>> = {}){
+            const clientPromise = new PromiseWithHandlers<InstanceType<Model>[]>();
+            const serverPromise = new PromiseWithHandlers<InstanceType<Model>[]>();
+            const syncOptions = {
+                callback: (posts, isServerData) => {
+                    if (isServerData){
+                        serverPromise.resolve(posts);
+                    } else {
+                        clientPromise.resolve(posts);
+                    }
+                },
+                errorCallback: ((e, isServer) => {
+                    if (isServer){
+                        serverPromise.reject(e);
+                    } else {
+                        clientPromise.reject(e);
+                    }
+                }),
+                runOnClient: true,
+                ...options
+            };
+
+            await executeWithSyncAndCallbacks(repository.find,[syncOptions], syncOptions );
+            return Promise.all([clientPromise, serverPromise]);
         },
 
         async findOneAndSync(options: SyncWithCallbackOptions<FindOneOptions<InstanceType<Model>>, InstanceType<Model>>) {

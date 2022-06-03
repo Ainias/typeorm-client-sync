@@ -6,7 +6,7 @@ import type {SyncResult} from './Errors/SyncResult';
 import {LastQueryDate} from './LastSyncDate/LastQueryDate';
 import {QueryError} from './Errors/QueryError';
 import {SyncContainer} from "./Sync/SyncTypes";
-import type {SyncRepository} from "./Repository/SyncRepository";
+import type {SyncJsonOptions, SyncRepository} from "./Repository/SyncRepository";
 
 
 export type DatabaseOptions = DataSourceOptions & (
@@ -178,9 +178,8 @@ export class Database {
     }
 
     async queryServer(
-        modelId: number,
         lastQueryDate: Date | undefined,
-        queryOptions: FindManyOptions,
+        queryOptions: SyncJsonOptions,
         extraData?: JSONValue
     ): Promise<SyncResult<QueryError>> {
         const {isClient} = this.options;
@@ -193,13 +192,30 @@ export class Database {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({modelId, lastQueryDate, queryOptions, extraData}),
+                    body: JSON.stringify({lastQueryDate, queryOptions, extraData}),
                     ...fetchOptions,
                 }).then((res) => res.json()).catch(e => console.error("LOG error:", e));
             }
-            return query(modelId, lastQueryDate, queryOptions, extraData);
+            return query(lastQueryDate, queryOptions, extraData);
         }
         return {success: false, error: {message: 'Database is not a client database!'}};
+    }
+
+    private static getTableName(model: typeof SyncModel){
+        let {name} = model;
+        name = name.substring(0, 1).toLowerCase() + name.substring(1).replace(/([A-Z])/g, (match) => {
+            return `_${match.toLowerCase()}`;
+        });
+        return name;
+    }
+
+    async clearTables(){
+        const queryRunner = await this.source.createQueryRunner();
+        const promises = (this.options.entities as typeof SyncModel[]).map(model => {
+            const name = Database.getTableName(model);
+            return queryRunner.clearTable(name);
+        });
+        await Promise.all(promises);
     }
 
     async removeFromServer(modelId: number, entityId: number, extraData?: JSONValue) {

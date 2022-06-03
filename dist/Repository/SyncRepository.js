@@ -13,6 +13,7 @@ exports.createSyncRepositoryExtension = exports.waitForSyncRepository = void 0;
 const Database_1 = require("../Database");
 const LastQueryDate_1 = require("../LastSyncDate/LastQueryDate");
 const SyncHelper_1 = require("../Sync/SyncHelper");
+const js_helper_1 = require("js-helper");
 const MultipleInitialResult_1 = require("../InitialResult/MultipleInitialResult");
 const SingleInitialResult_1 = require("../InitialResult/SingleInitialResult");
 function createSyncRepository(model, db) {
@@ -70,52 +71,58 @@ function createSyncRepositoryExtension(model, repository, db) {
     function sync(options) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if (db.isClientDatabase()) {
-                const relevantSyncOptions = {
-                    where: SyncHelper_1.SyncHelper.convertWhereToJson((_a = options === null || options === void 0 ? void 0 : options.where) !== null && _a !== void 0 ? _a : {}),
-                    relations: options === null || options === void 0 ? void 0 : options.relations,
-                    skip: options === null || options === void 0 ? void 0 : options.skip,
-                    take: options === null || options === void 0 ? void 0 : options.take,
-                };
-                if ((options === null || options === void 0 ? void 0 : options.skip) || (options === null || options === void 0 ? void 0 : options.take)) {
-                    relevantSyncOptions.order = options === null || options === void 0 ? void 0 : options.order;
+            if (db.isServerDatabase()) {
+                return;
+            }
+            const modelId = Database_1.Database.getModelIdFor(model);
+            const relevantSyncOptions = {
+                where: SyncHelper_1.SyncHelper.convertWhereToJson((_a = options === null || options === void 0 ? void 0 : options.where) !== null && _a !== void 0 ? _a : {}),
+                relations: options === null || options === void 0 ? void 0 : options.relations,
+                skip: options === null || options === void 0 ? void 0 : options.skip,
+                take: options === null || options === void 0 ? void 0 : options.take,
+                modelId,
+            };
+            if ((options === null || options === void 0 ? void 0 : options.skip) || (options === null || options === void 0 ? void 0 : options.take)) {
+                relevantSyncOptions.order = options === null || options === void 0 ? void 0 : options.order;
+            }
+            const stringifiedSyncOptions = JSON.stringify(relevantSyncOptions);
+            let lastQueryDate = yield LastQueryDate_1.LastQueryDate.findOne({
+                where: {
+                    query: stringifiedSyncOptions
                 }
-                const modelId = Database_1.Database.getModelIdFor(model);
-                let lastQueryDate = yield LastQueryDate_1.LastQueryDate.findOne({
-                    where: {
-                        query: JSON.stringify(relevantSyncOptions),
-                        modelId
-                    }
+            });
+            if (!lastQueryDate) {
+                lastQueryDate = new LastQueryDate_1.LastQueryDate();
+                lastQueryDate.query = stringifiedSyncOptions;
+            }
+            const result = yield db.queryServer(lastQueryDate.lastQueried, relevantSyncOptions);
+            if (result.success === true) {
+                if (result.deleted.length > 0) {
+                    yield repository.delete(result.deleted);
+                }
+                const modelContainer = SyncHelper_1.SyncHelper.convertToModelContainer(result.syncContainer);
+                const savePromises = [];
+                Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
+                    const syncedModel = Database_1.Database.getModelForId(Number(queriedModelId));
+                    savePromises.push(waitForSyncRepository(syncedModel).then(modelRepository => {
+                        const entities = Object.values(entityMap);
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        return modelRepository.save(entities, { reload: false }, true);
+                    }));
                 });
-                if (!lastQueryDate) {
-                    lastQueryDate = new LastQueryDate_1.LastQueryDate();
-                    lastQueryDate.query = JSON.stringify(relevantSyncOptions);
-                    lastQueryDate.modelId = modelId;
-                }
-                const result = yield db.queryServer(modelId, lastQueryDate.lastQueried, relevantSyncOptions);
-                if (result.success === true) {
-                    if (result.deleted.length > 0) {
-                        yield repository.delete(result.deleted);
-                    }
-                    const modelContainer = SyncHelper_1.SyncHelper.convertToModelContainer(result.syncContainer);
-                    const savePromises = [];
-                    Object.entries(modelContainer).forEach(([queriedEntityId, modelMap]) => {
-                        const syncedEntity = Database_1.Database.getModelForId(Number(queriedEntityId));
-                        savePromises.push(waitForSyncRepository(syncedEntity).then(entityRepository => {
-                            const vals = Object.values(modelMap);
-                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                            // @ts-ignore
-                            return entityRepository.save(vals, { reload: false }, true);
-                        }));
-                    });
-                    lastQueryDate.lastQueried = new Date(result.lastQueryDate);
-                    Promise.all(savePromises).catch(e => console.log("Sync Error", e));
+                lastQueryDate.lastQueried = new Date(result.lastQueryDate);
+                try {
                     yield Promise.all(savePromises);
                     yield lastQueryDate.save();
                 }
-                else {
-                    throw new Error(result.error.message);
+                catch (e) {
+                    console.error("Sync Error", e);
+                    throw e;
                 }
+            }
+            else {
+                throw new Error(result.error.message);
             }
         });
     }
@@ -129,7 +136,9 @@ function createSyncRepositoryExtension(model, repository, db) {
                     serverCalled = true;
                     syncOptions.callback(serverResult, true);
                 }).catch(e => {
-                    syncOptions === null || syncOptions === void 0 ? void 0 : syncOptions.errorCallback(e, true);
+                    var _a;
+                    console.error(e);
+                    (_a = syncOptions === null || syncOptions === void 0 ? void 0 : syncOptions.errorCallback) === null || _a === void 0 ? void 0 : _a.call(syncOptions, e, true);
                 }));
             }
             if (db.isServerDatabase() || syncOptions.runOnClient !== false) {
@@ -152,23 +161,6 @@ function createSyncRepositoryExtension(model, repository, db) {
         saveAndSync,
         save,
         remove,
-        // getFieldDefinitions() {
-        //     const bases: (typeof SyncModel)[] = [model];
-        //     let currentBase = model;
-        //     while (currentBase.prototype) {
-        //         currentBase = Object.getPrototypeOf(currentBase);
-        //         bases.push(currentBase);
-        //     }
-        //
-        //     const columnDefinitions = getMetadataArgsStorage().columns.filter(
-        //         (c) => bases.indexOf(c.target as typeof SyncModel) !== -1
-        //     );
-        //     const relationDefinitions = getMetadataArgsStorage().relations.filter(
-        //         (c) => bases.indexOf(c.target as typeof SyncModel) !== -1
-        //     );
-        //
-        //     return {columnDefinitions, relationDefinitions};
-        // },
         removeAndSync(entity, options) {
             return __awaiter(this, void 0, void 0, function* () {
                 if (db.isClientDatabase() && (options === null || options === void 0 ? void 0 : options.runOnServer) !== false) {
@@ -184,6 +176,29 @@ function createSyncRepositoryExtension(model, repository, db) {
         findAndSync(options) {
             return __awaiter(this, void 0, void 0, function* () {
                 yield executeWithSyncAndCallbacks(repository.find, [options], options);
+            });
+        },
+        promiseFindAndSync(options = {}) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const clientPromise = new js_helper_1.PromiseWithHandlers();
+                const serverPromise = new js_helper_1.PromiseWithHandlers();
+                const syncOptions = Object.assign({ callback: (posts, isServerData) => {
+                        if (isServerData) {
+                            serverPromise.resolve(posts);
+                        }
+                        else {
+                            clientPromise.resolve(posts);
+                        }
+                    }, errorCallback: ((e, isServer) => {
+                        if (isServer) {
+                            serverPromise.reject(e);
+                        }
+                        else {
+                            clientPromise.reject(e);
+                        }
+                    }), runOnClient: true }, options);
+                yield executeWithSyncAndCallbacks(repository.find, [syncOptions], syncOptions);
+                return Promise.all([clientPromise, serverPromise]);
             });
         },
         findOneAndSync(options) {

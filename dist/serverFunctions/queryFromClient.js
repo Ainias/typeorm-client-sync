@@ -15,9 +15,10 @@ const Database_1 = require("../Database");
 const SyncHelper_1 = require("../Sync/SyncHelper");
 const js_helper_1 = require("js-helper");
 const SyncRepository_1 = require("../Repository/SyncRepository");
-function queryFromClient(modelId, lastQueryDate, queryOptions, syncOne = false) {
+function queryFromClient(lastQueryDate, queryOptions, syncOne = false) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        const { modelId } = queryOptions;
         const deleteOptions = js_helper_1.JsonHelper.deepCopy(queryOptions);
         queryOptions.where = SyncHelper_1.SyncHelper.convertJsonToWhere((_a = queryOptions.where) !== null && _a !== void 0 ? _a : {});
         deleteOptions.where = SyncHelper_1.SyncHelper.convertJsonToWhere((_b = deleteOptions.where) !== null && _b !== void 0 ? _b : {});

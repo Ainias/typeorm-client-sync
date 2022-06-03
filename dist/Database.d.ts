@@ -1,11 +1,11 @@
-import { DataSource, DataSourceOptions, FindManyOptions } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import type { SyncModel } from './SyncModel';
 import { JSONValue, PromiseWithHandlers } from 'js-helper';
 import { PersistError } from './Errors/PersistError';
 import type { SyncResult } from './Errors/SyncResult';
 import { QueryError } from './Errors/QueryError';
 import { SyncContainer } from "./Sync/SyncTypes";
-import type { SyncRepository } from "./Repository/SyncRepository";
+import type { SyncJsonOptions, SyncRepository } from "./Repository/SyncRepository";
 export declare type DatabaseOptions = DataSourceOptions & ({
     isClient?: false;
 } | {
@@ -41,7 +41,9 @@ export declare class Database {
     isClientDatabase(): boolean;
     isServerDatabase(): boolean;
     persistToServer(modelId: number, entityId: number, syncContainer: SyncContainer, extraData?: JSONValue): Promise<SyncResult<PersistError>>;
-    queryServer(modelId: number, lastQueryDate: Date | undefined, queryOptions: FindManyOptions, extraData?: JSONValue): Promise<SyncResult<QueryError>>;
+    queryServer(lastQueryDate: Date | undefined, queryOptions: SyncJsonOptions, extraData?: JSONValue): Promise<SyncResult<QueryError>>;
+    private static getTableName;
+    clearTables(): Promise<void>;
     removeFromServer(modelId: number, entityId: number, extraData?: JSONValue): any;
     setRepositoryPromise(model: typeof SyncModel, repositoryPromise: Promise<SyncRepository<any>>): void;
     getRepositoryPromise(model: typeof SyncModel): any;

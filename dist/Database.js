@@ -139,7 +139,7 @@ class Database {
             return { success: false, error: { message: 'Database is not a client database!' } };
         });
     }
-    queryServer(modelId, lastQueryDate, queryOptions, extraData) {
+    queryServer(lastQueryDate, queryOptions, extraData) {
         return __awaiter(this, void 0, void 0, function* () {
             const { isClient } = this.options;
             if (isClient) {
@@ -147,11 +147,28 @@ class Database {
                 if (typeof query === 'string') {
                     return fetch(query, Object.assign({ method: 'POST', headers: {
                             'Content-Type': 'application/json',
-                        }, body: JSON.stringify({ modelId, lastQueryDate, queryOptions, extraData }) }, fetchOptions)).then((res) => res.json()).catch(e => console.error("LOG error:", e));
+                        }, body: JSON.stringify({ lastQueryDate, queryOptions, extraData }) }, fetchOptions)).then((res) => res.json()).catch(e => console.error("LOG error:", e));
                 }
-                return query(modelId, lastQueryDate, queryOptions, extraData);
+                return query(lastQueryDate, queryOptions, extraData);
             }
             return { success: false, error: { message: 'Database is not a client database!' } };
+        });
+    }
+    static getTableName(model) {
+        let { name } = model;
+        name = name.substring(0, 1).toLowerCase() + name.substring(1).replace(/([A-Z])/g, (match) => {
+            return `_${match.toLowerCase()}`;
+        });
+        return name;
+    }
+    clearTables() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const queryRunner = yield this.source.createQueryRunner();
+            const promises = this.options.entities.map(model => {
+                const name = Database.getTableName(model);
+                return queryRunner.clearTable(name);
+            });
+            yield Promise.all(promises);
         });
     }
     removeFromServer(modelId, entityId, extraData) {

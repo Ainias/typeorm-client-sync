@@ -8,6 +8,9 @@ export declare type SyncOptions<T> = T & {
     runOnServer?: boolean;
     extraData?: JSONValue;
 };
+export declare type SyncJsonOptions = FindManyOptions & {
+    modelId: number;
+};
 export declare type SyncWithCallbackOptions<T, Result> = SyncOptions<T> & {
     runOnClient?: boolean;
     callback: (value: Result, isServerData: boolean) => void;
@@ -33,6 +36,7 @@ export declare function waitForSyncRepository<T extends typeof SyncModel>(model:
     remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
     removeAndSync(entity: InstanceType<T>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<T>>;
     findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
+    promiseFindAndSync(options?: FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
     findOneAndSync(options: SyncWithCallbackOptions<FindOneOptions<InstanceType<T>>, InstanceType<T>>): Promise<void>;
     initialFind(options?: FindManyOptions<InstanceType<T>>): Promise<MultipleInitialResult<T>>;
     initialFindOne(options: FindOneOptions<InstanceType<T>>): Promise<SingleInitialResult<T>>;
@@ -53,6 +57,7 @@ export declare function createSyncRepositoryExtension<Model extends typeof SyncM
     remove: (__0_0: InstanceType<Model>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<Model>>;
     removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model>>;
     findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<Model>>, InstanceType<Model>[]>): Promise<void>;
+    promiseFindAndSync(options?: FindManyOptions<InstanceType<Model>>): Promise<[InstanceType<Model>[], InstanceType<Model>[]]>;
     findOneAndSync(options: SyncWithCallbackOptions<FindOneOptions<InstanceType<Model>>, InstanceType<Model>>): Promise<void>;
     initialFind(options?: FindManyOptions<InstanceType<Model>>): Promise<MultipleInitialResult<Model>>;
     initialFindOne(options: FindOneOptions<InstanceType<Model>>): Promise<SingleInitialResult<Model>>;
@@ -80,6 +85,7 @@ declare class TypeWrapper<T extends typeof SyncModel> {
         remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
         removeAndSync(entity: InstanceType<T>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<T>>;
         findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
+        promiseFindAndSync(options?: FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
         findOneAndSync(options: SyncWithCallbackOptions<FindOneOptions<InstanceType<T>>, InstanceType<T>>): Promise<void>;
         initialFind(options?: FindManyOptions<InstanceType<T>>): Promise<MultipleInitialResult<T>>;
         initialFindOne(options: FindOneOptions<InstanceType<T>>): Promise<SingleInitialResult<T>>;

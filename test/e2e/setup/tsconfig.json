@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "target": "es6",
+    "lib": [
+      "es6",
+      "es2016",
+      "es2017",
+      "es2021",
+      "dom",
+      "dom.iterable",
+      "esnext",
+      "es5", "es2015.promise", "es2015"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    //    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "strict": false,
+    "typeRoots": ["./node_modules/@types", "./node_modules/react-bootstrap-mobile/src/types"],
+
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+  },
+  "include": [
+    "./client/**/*",
+  ],
+  "exclude": [],
+}

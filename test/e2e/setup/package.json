@@ -1,0 +1,20 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "ts-node server/server.ts",
+    "build": "webpack --config webpack.config.js"
+  },
+  "dependencies": {
+    "express": "^4.18.1",
+    "typeorm-sync": "file:../../../",
+    "ts-node": "^10.8.0",
+    "mysql2": "^2.3.3",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2",
+    "ts-loader": "^9.3.0",
+    "sql.js": "^1.6.2",
+    "copy-webpack-plugin": "^11.0.0",
+    "localforage": "^1.10.0"
+  }
+}

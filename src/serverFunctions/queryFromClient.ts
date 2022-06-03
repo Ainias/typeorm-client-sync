@@ -2,15 +2,15 @@ import {FindManyOptions, FindOneOptions, IsNull, MoreThan, Not} from 'typeorm';
 import {Database} from '../Database';
 import {SyncHelper} from '../Sync/SyncHelper';
 import {JsonHelper} from 'js-helper';
-import {waitForSyncRepository} from "../Repository/SyncRepository";
+import {SyncJsonOptions, waitForSyncRepository} from "../Repository/SyncRepository";
 import {EntityContainer} from "../Sync/SyncTypes";
 
 export async function queryFromClient(
-    modelId: number,
     lastQueryDate: Date | undefined,
-    queryOptions: FindManyOptions | FindOneOptions,
+    queryOptions: SyncJsonOptions,
     syncOne = false
 ) {
+    const {modelId} = queryOptions;
     const deleteOptions = JsonHelper.deepCopy(queryOptions);
     queryOptions.where = SyncHelper.convertJsonToWhere(queryOptions.where ?? {});
     deleteOptions.where = SyncHelper.convertJsonToWhere(deleteOptions.where ?? {});
@@ -36,7 +36,6 @@ export async function queryFromClient(
     const model = Database.getModelForId(modelId);
     const newLastQueryDate = new Date();
     const repository = await waitForSyncRepository(model);
-
 
     const entityPromise = syncOne ? repository.findOne(queryOptions as FindOneOptions).then(entity => entity ? [entity] : []) : repository.find(queryOptions as FindManyOptions);
     const deletedPromise = syncOne ? repository.findOne(deleteOptions as FindOneOptions).then(entity => entity ? [entity] : []) : repository.find(deleteOptions as FindManyOptions);
