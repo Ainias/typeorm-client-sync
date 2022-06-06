@@ -6,7 +6,7 @@ import {Database, DatabaseOptions} from "typeorm-sync";
 
 const runner = TestcaseRunner.getInstance();
 runner.setDisplay(document.getElementById("state-display") as HTMLDivElement);
-console.log("LOG-d runner", runner);
+runner.displayTestSelection(document.getElementById("tests"));
 
 window["runner"] = runner;
 

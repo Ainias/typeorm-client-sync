@@ -132,19 +132,24 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
                     const entities = Object.values(entityMap);
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    return modelRepository.save(entities, {reload: false}, true);
+                    return modelRepository.save(entities, {reload: false}, true).catch(e => {
+                        console.log("LOG-d got error for saving entities", entities, e);
+                        throw e;
+                    });
                 }));
             });
 
             lastQueryDate.lastQueried = new Date(result.lastQueryDate);
             try {
+                console.log("saving data for ", JSON.stringify(relevantSyncOptions));
                 await Promise.all(savePromises);
                 await lastQueryDate.save();
-            }catch (e){
+            } catch (e) {
                 console.error("Sync Error", e);
                 throw e;
             }
         } else {
+            console.error("Sync Error from Server", result.error.message);
             throw new Error(result.error.message);
         }
 
@@ -202,19 +207,19 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             await executeWithSyncAndCallbacks(repository.find, [options], options);
         },
 
-        async promiseFindAndSync(options: FindManyOptions<InstanceType<Model>> = {}){
+        async promiseFindAndSync(options: FindManyOptions<InstanceType<Model>> = {}) {
             const clientPromise = new PromiseWithHandlers<InstanceType<Model>[]>();
             const serverPromise = new PromiseWithHandlers<InstanceType<Model>[]>();
             const syncOptions = {
                 callback: (posts, isServerData) => {
-                    if (isServerData){
+                    if (isServerData) {
                         serverPromise.resolve(posts);
                     } else {
                         clientPromise.resolve(posts);
                     }
                 },
                 errorCallback: ((e, isServer) => {
-                    if (isServer){
+                    if (isServer) {
                         serverPromise.reject(e);
                     } else {
                         clientPromise.reject(e);
@@ -224,7 +229,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
                 ...options
             };
 
-            await executeWithSyncAndCallbacks(repository.find,[syncOptions], syncOptions );
+            await executeWithSyncAndCallbacks(repository.find, [syncOptions], syncOptions);
             return Promise.all([clientPromise, serverPromise]);
         },
 

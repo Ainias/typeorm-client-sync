@@ -108,11 +108,15 @@ function createSyncRepositoryExtension(model, repository, db) {
                         const entities = Object.values(entityMap);
                         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-ignore
-                        return modelRepository.save(entities, { reload: false }, true);
+                        return modelRepository.save(entities, { reload: false }, true).catch(e => {
+                            console.log("LOG-d got error for saving entities", entities, e);
+                            throw e;
+                        });
                     }));
                 });
                 lastQueryDate.lastQueried = new Date(result.lastQueryDate);
                 try {
+                    console.log("saving data for ", JSON.stringify(relevantSyncOptions));
                     yield Promise.all(savePromises);
                     yield lastQueryDate.save();
                 }
@@ -122,6 +126,7 @@ function createSyncRepositoryExtension(model, repository, db) {
                 }
             }
             else {
+                console.error("Sync Error from Server", result.error.message);
                 throw new Error(result.error.message);
             }
         });

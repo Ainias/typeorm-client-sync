@@ -11,6 +11,12 @@ export class TestcaseRunner {
     private testcases: Record<string, Testcase<any>> = {};
     private display?: HTMLDivElement;
 
+    constructor() {
+        window.onerror = (e) => {
+            console.log("LOG-d got error in window error listener", e);
+        };
+    }
+
     addTestcase(name: string, test: Testcase<any>) {
         this.testcases[name] = test;
     }
@@ -37,6 +43,8 @@ export class TestcaseRunner {
             let state = "clear database";
 
             try {
+                await window["initPromise"];
+
                 this.clearDisplay();
                 this.addDisplayText("Cleaning Database " + name + "...");
                 await Database.getInstance().clearTables();
@@ -56,7 +64,7 @@ export class TestcaseRunner {
                 this.addDisplayText("Done testing " + name + "!");
                 return {success: true, result};
             } catch (e) {
-                console.log("LOg-d caught", e);
+                console.log("caught error:", e);
                 const message = "error in state " + state + ": '" + e.message ?? e.getMessage?.() ?? e + "'";
                 this.addDisplayText(message);
                 return {
@@ -66,7 +74,28 @@ export class TestcaseRunner {
                 };
             }
         } else {
-            this.addDisplayText("no test found with " + name);
+            const message = "no test found with '" + name + "'";
+            this.addDisplayText(message);
+            return {
+                success: false,
+                reason: message
+            };
         }
+    }
+
+    displayTestSelection(elem: HTMLElement) {
+        const linkSelection = document.createElement("div");
+        Object.keys(this.testcases).forEach(name => {
+            const linkElement = document.createElement("a");
+            linkElement.innerText = name;
+            linkElement.href = "#";
+            linkElement.addEventListener("click", () => {
+                this.run(name);
+            });
+            const container = document.createElement("div");
+            container.appendChild(linkElement);
+            linkSelection.appendChild(container);
+        });
+        elem.appendChild(linkSelection);
     }
 }

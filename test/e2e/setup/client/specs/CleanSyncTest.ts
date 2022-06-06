@@ -26,7 +26,7 @@ class CleanSyncTest extends Testcase<any> {
     }
 
     async assert(result: Awaited<ReturnType<CleanSyncTest["run"]>>): Promise<void>{
-        const {server, client, saved, lastQueryDate} = result;
+        const {server, client, saved} = result;
 
         this.expectEqual(client.length, 0);
         this.expectEqual(server.length, 5);
@@ -41,4 +41,4 @@ class CleanSyncTest extends Testcase<any> {
 
 }
 
-TestcaseRunner.getInstance().addTestcase("cleanSyncTest", new CleanSyncTest());
+TestcaseRunner.getInstance().addTestcase("CleanSyncTest", new CleanSyncTest());

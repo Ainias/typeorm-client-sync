@@ -1,6 +1,6 @@
 import {Testcase} from "../Testcase";
 import {TestcaseRunner} from "../TestcaseRunner";
-import {Database, LastQueryDate, waitForSyncRepository} from "typeorm-sync";
+import { waitForSyncRepository} from "typeorm-sync";
 import {Post} from "../../models/Post";
 
 class OverwriteTest extends Testcase<any> {
@@ -11,17 +11,17 @@ class OverwriteTest extends Testcase<any> {
         const [client, server] = await postRepository.promiseFindAndSync({relations: ["author", "comments"]});
         const saved = await window["queryDB"]("SELECT * FROM post;");
 
-        const [client2, server2] = await postRepository.promiseFindAndSync();
-        const saved2 = await window["queryDB"]("SELECT * FROM post;");
+        // const [client2, server2] = await postRepository.promiseFindAndSync();
+        // const saved2 = await window["queryDB"]("SELECT * FROM post;");
 
         return {
             server,
             client,
             saved,
 
-            server2,
-            client2,
-            saved2,
+            server2: server,
+            client2: client,
+            saved2: saved,
         };
     }
 
@@ -58,4 +58,4 @@ class OverwriteTest extends Testcase<any> {
     }
 }
 
-TestcaseRunner.getInstance().addTestcase("overwriteTest", new OverwriteTest());
+TestcaseRunner.getInstance().addTestcase("OverwriteTest", new OverwriteTest());
