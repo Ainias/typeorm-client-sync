@@ -3,7 +3,6 @@ import {Database} from '../Database';
 import {SyncHelper} from '../Sync/SyncHelper';
 import {JsonHelper} from 'js-helper';
 import {SyncJsonOptions, waitForSyncRepository} from "../Repository/SyncRepository";
-import {EntityContainer} from "../Sync/SyncTypes";
 
 export async function queryFromClient(
     lastQueryDate: Date | undefined,
@@ -41,15 +40,12 @@ export async function queryFromClient(
     const deletedPromise = syncOne ? repository.findOne(deleteOptions as FindOneOptions).then(entity => entity ? [entity] : []) : repository.find(deleteOptions as FindManyOptions);
 
     const entities = await entityPromise;
-    const entityContainer: EntityContainer = {};
-    entities.forEach((entity) => {
-        SyncHelper.addToEntityContainer(entity, entityContainer);
-    });
     const deleted = (await deletedPromise).map((m) => m.id);
+    const {syncContainer} = SyncHelper.toServerResult(entities)
 
     return {
         lastQueryDate: newLastQueryDate,
         deleted,
-        syncContainer: SyncHelper.convertToSyncContainer(entityContainer),
+        syncContainer,
     };
 }

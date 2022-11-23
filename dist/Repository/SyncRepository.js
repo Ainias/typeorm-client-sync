@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSyncRepositoryExtension = exports.waitForSyncRepository = void 0;
 const Database_1 = require("../Database");
-const LastQueryDate_1 = require("../LastSyncDate/LastQueryDate");
+const LastQueryDate_1 = require("../LastQueryDate/LastQueryDate");
 const SyncHelper_1 = require("../Sync/SyncHelper");
 const js_helper_1 = require("js-helper");
 const MultipleInitialResult_1 = require("../InitialResult/MultipleInitialResult");
@@ -68,12 +68,9 @@ function createSyncRepositoryExtension(model, repository, db) {
             }
         });
     }
-    function sync(options) {
+    function prepareSync(options) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            if (db.isServerDatabase()) {
-                return;
-            }
             const modelId = Database_1.Database.getModelIdFor(model);
             const relevantSyncOptions = {
                 where: SyncHelper_1.SyncHelper.convertWhereToJson((_a = options === null || options === void 0 ? void 0 : options.where) !== null && _a !== void 0 ? _a : {}),
@@ -85,6 +82,7 @@ function createSyncRepositoryExtension(model, repository, db) {
             if ((options === null || options === void 0 ? void 0 : options.skip) || (options === null || options === void 0 ? void 0 : options.take)) {
                 relevantSyncOptions.order = options === null || options === void 0 ? void 0 : options.order;
             }
+            // TODO primary key through hashing? => Evaluate if hashing and querying is faster than query with full query
             const stringifiedSyncOptions = JSON.stringify(relevantSyncOptions);
             let lastQueryDate = yield LastQueryDate_1.LastQueryDate.findOne({
                 where: {
@@ -95,29 +93,50 @@ function createSyncRepositoryExtension(model, repository, db) {
                 lastQueryDate = new LastQueryDate_1.LastQueryDate();
                 lastQueryDate.query = stringifiedSyncOptions;
             }
-            const result = yield db.queryServer(lastQueryDate.lastQueried, relevantSyncOptions);
+            return [lastQueryDate, relevantSyncOptions];
+        });
+    }
+    function handleSyncResult(result, lastQueryDate) {
+        return __awaiter(this, void 0, void 0, function* () {
             if (result.success === true) {
                 if (result.deleted.length > 0) {
-                    yield repository.delete(result.deleted);
+                    yield repository.remove(result.deleted.map(id => ({ id })));
                 }
                 const modelContainer = SyncHelper_1.SyncHelper.convertToModelContainer(result.syncContainer);
-                const savePromises = [];
+                // // TODO asynchronous saving of entities. Maybe other sqljs version?
+                let savePromise = Promise.resolve(undefined);
                 Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
                     const syncedModel = Database_1.Database.getModelForId(Number(queriedModelId));
-                    savePromises.push(waitForSyncRepository(syncedModel).then(modelRepository => {
-                        const entities = Object.values(entityMap);
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        return modelRepository.save(entities, { reload: false }, true).catch(e => {
-                            console.log("LOG-d got error for saving entities", entities, e);
-                            throw e;
+                    savePromise = savePromise.then(() => {
+                        return waitForSyncRepository(syncedModel).then(modelRepository => {
+                            const entities = Object.values(entityMap);
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-ignore
+                            return modelRepository.save(entities, { reload: false }, true).catch(e => {
+                                console.error("got error for saving entities", entities, e);
+                                throw e;
+                            });
                         });
-                    }));
+                    });
                 });
+                // debugger;
+                // const savePromises = [];
+                // Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
+                //     const syncedModel = Database.getModelForId(Number(queriedModelId));
+                //     savePromises.push(waitForSyncRepository(syncedModel).then(async modelRepository => {
+                //         const entities = Object.values(entityMap);
+                //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                //         // @ts-ignore
+                //         return modelRepository.save(entities, {reload: false}, true).catch(e => {
+                //             console.error("got error for saving entities", entities, e);
+                //             throw e;
+                //         });
+                //     }));
+                // });
+                // const savePromise = Promise.all(savePromises);
                 lastQueryDate.lastQueried = new Date(result.lastQueryDate);
                 try {
-                    console.log("saving data for ", JSON.stringify(relevantSyncOptions));
-                    yield Promise.all(savePromises);
+                    yield savePromise;
                     yield lastQueryDate.save();
                 }
                 catch (e) {
@@ -129,6 +148,16 @@ function createSyncRepositoryExtension(model, repository, db) {
                 console.error("Sync Error from Server", result.error.message);
                 throw new Error(result.error.message);
             }
+        });
+    }
+    function sync(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (db.isServerDatabase()) {
+                return;
+            }
+            const [lastQueryDate, relevantSyncOptions] = yield prepareSync(options);
+            const result = yield db.queryServer(lastQueryDate.lastQueried, relevantSyncOptions);
+            return handleSyncResult(result, lastQueryDate);
         });
     }
     function executeWithSyncAndCallbacks(method, params, syncOptions) {
@@ -162,10 +191,33 @@ function createSyncRepositoryExtension(model, repository, db) {
             }
         });
     }
+    function saveInitialResult(initialResult) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (db.isServerDatabase()) {
+                throw new Error("fromInitialResult should only be called on client!");
+            }
+            if (initialResult.isJson === false) {
+                initialResult = initialResult.toJSON();
+            }
+            const [lastQueryDate] = yield prepareSync(initialResult.query);
+            const { syncContainer } = "entities" in initialResult ? initialResult.entities : initialResult.entity;
+            const modelId = Database_1.Database.getModelIdFor(model);
+            const deletedEntities = yield repository.find(Object.assign(Object.assign({}, initialResult.query), { select: ["id"] }));
+            const deleted = deletedEntities.map((m) => m.id).filter(id => !syncContainer[modelId][id]);
+            const result = {
+                success: true,
+                deleted,
+                lastQueryDate: initialResult.date,
+                syncContainer
+            };
+            return handleSyncResult(result, lastQueryDate);
+        });
+    }
     return {
         saveAndSync,
         save,
         remove,
+        saveInitialResult,
         removeAndSync(entity, options) {
             return __awaiter(this, void 0, void 0, function* () {
                 if (db.isClientDatabase() && (options === null || options === void 0 ? void 0 : options.runOnServer) !== false) {
@@ -213,24 +265,28 @@ function createSyncRepositoryExtension(model, repository, db) {
         },
         initialFind(options) {
             return __awaiter(this, void 0, void 0, function* () {
-                return new MultipleInitialResult_1.MultipleInitialResult(model, yield repository.find(options));
+                const syncDate = new Date();
+                return new MultipleInitialResult_1.MultipleInitialResult(model, yield repository.find(options), syncDate, options);
             });
         },
         initialFindOne(options) {
             return __awaiter(this, void 0, void 0, function* () {
-                return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOne(options));
+                const syncDate = new Date();
+                return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOne(options), syncDate, options);
             });
         },
         initialFindOneBy(options) {
             return __awaiter(this, void 0, void 0, function* () {
-                return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOneBy(options));
+                const syncDate = new Date();
+                return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOneBy(options), syncDate, { where: options });
             });
         },
         initialFindOneById(id) {
             return __awaiter(this, void 0, void 0, function* () {
-                return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOneBy({ id }));
+                const syncDate = new Date();
+                return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOneBy({ id }), syncDate, { where: { id } });
             });
-        }
+        },
     };
 }
 exports.createSyncRepositoryExtension = createSyncRepositoryExtension;

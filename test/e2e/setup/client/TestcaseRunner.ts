@@ -65,7 +65,7 @@ export class TestcaseRunner {
                 return {success: true, result};
             } catch (e) {
                 console.log("caught error:", e);
-                const message = "error in state " + state + ": '" + e.message ?? e.getMessage?.() ?? e + "'";
+                const message = "error in state " + state + ": '" + (e.message ?? e.getMessage?.() ?? e) + "'";
                 this.addDisplayText(message);
                 return {
                     success: false,

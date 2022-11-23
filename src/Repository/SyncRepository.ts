@@ -8,12 +8,14 @@ import {
     SaveOptions
 } from "typeorm";
 import {Database} from "../Database";
-import {LastQueryDate} from "../LastSyncDate/LastQueryDate";
+import {LastQueryDate} from "../LastQueryDate/LastQueryDate";
 import {SyncHelper} from "../Sync/SyncHelper";
 import {EntityContainer} from "../Sync/SyncTypes";
 import {JSONValue, PromiseWithHandlers} from "js-helper";
-import {MultipleInitialResult} from "../InitialResult/MultipleInitialResult";
-import {SingleInitialResult} from "../InitialResult/SingleInitialResult";
+import {MultipleInitialResult, MultipleInitialResultJSON} from "../InitialResult/MultipleInitialResult";
+import {SingleInitialResult, SingleInitialResultJSON} from "../InitialResult/SingleInitialResult";
+import {SyncResult} from "../Errors/SyncResult";
+import {SyncError} from "../Errors/SyncError";
 
 type FunctionProperties2<T> = {
     [K in keyof T]: T[K] extends ((...args: any) => any) ? T[K] : never;
@@ -85,11 +87,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         }
     }
 
-    async function sync(options?: FindManyOptions<InstanceType<Model>>) {
-        if (db.isServerDatabase()) {
-            return;
-        }
-
+    async function prepareSync(options?: FindManyOptions<InstanceType<Model>>) {
         const modelId = Database.getModelIdFor(model);
         const relevantSyncOptions: SyncJsonOptions = {
             where: SyncHelper.convertWhereToJson(options?.where ?? {}),
@@ -103,6 +101,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             relevantSyncOptions.order = options?.order;
         }
 
+        // TODO primary key through hashing? => Evaluate if hashing and querying is faster than query with full query
         const stringifiedSyncOptions = JSON.stringify(relevantSyncOptions);
         let lastQueryDate = await LastQueryDate.findOne({
             where: {
@@ -115,34 +114,54 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             lastQueryDate.query = stringifiedSyncOptions;
         }
 
-        const result = await db.queryServer(
-            lastQueryDate.lastQueried,
-            relevantSyncOptions,
-        );
+        return [lastQueryDate, relevantSyncOptions] as const;
+    }
 
+    async function handleSyncResult(result: SyncResult<SyncError>, lastQueryDate: LastQueryDate) {
         if (result.success === true) {
             if (result.deleted.length > 0) {
-                await repository.delete(result.deleted);
+                await repository.remove(result.deleted.map(id => ({id} as InstanceType<Model>)));
             }
             const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
-            const savePromises = [];
+
+            // // TODO asynchronous saving of entities. Maybe other sqljs version?
+            let savePromise = Promise.resolve(undefined);
             Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
                 const syncedModel = Database.getModelForId(Number(queriedModelId));
-                savePromises.push(waitForSyncRepository(syncedModel).then(modelRepository => {
-                    const entities = Object.values(entityMap);
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    return modelRepository.save(entities, {reload: false}, true).catch(e => {
-                        console.log("LOG-d got error for saving entities", entities, e);
-                        throw e;
+                savePromise = savePromise.then(() => {
+                    return waitForSyncRepository(syncedModel).then(modelRepository => {
+                        const entities = Object.values(entityMap);
+
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        return modelRepository.save(entities, {reload: false}, true).catch(e => {
+                            console.error("got error for saving entities", entities, e);
+                            throw e;
+                        });
                     });
-                }));
+                });
             });
+
+
+            // debugger;
+            // const savePromises = [];
+            // Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
+            //     const syncedModel = Database.getModelForId(Number(queriedModelId));
+            //     savePromises.push(waitForSyncRepository(syncedModel).then(async modelRepository => {
+            //         const entities = Object.values(entityMap);
+            //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //         // @ts-ignore
+            //         return modelRepository.save(entities, {reload: false}, true).catch(e => {
+            //             console.error("got error for saving entities", entities, e);
+            //             throw e;
+            //         });
+            //     }));
+            // });
+            // const savePromise = Promise.all(savePromises);
 
             lastQueryDate.lastQueried = new Date(result.lastQueryDate);
             try {
-                console.log("saving data for ", JSON.stringify(relevantSyncOptions));
-                await Promise.all(savePromises);
+                await savePromise;
                 await lastQueryDate.save();
             } catch (e) {
                 console.error("Sync Error", e);
@@ -152,7 +171,18 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             console.error("Sync Error from Server", result.error.message);
             throw new Error(result.error.message);
         }
+    }
 
+    async function sync(options?: FindManyOptions<InstanceType<Model>>) {
+        if (db.isServerDatabase()) {
+            return;
+        }
+        const [lastQueryDate, relevantSyncOptions] = await prepareSync(options);
+        const result = await db.queryServer(
+            lastQueryDate.lastQueried,
+            relevantSyncOptions,
+        );
+        return handleSyncResult(result, lastQueryDate);
     }
 
     async function executeWithSyncAndCallbacks<Method extends FunctionProperties2<typeof repository>>(method: Method, params: Parameters<Method>, syncOptions: SyncWithCallbackOptions<FindManyOptions<InstanceType<Model>>, Awaited<ReturnType<Method>>>) {
@@ -187,10 +217,38 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         }
     }
 
+    async function saveInitialResult(initialResult: SingleInitialResultJSON<Model> | SingleInitialResult<Model>)
+    async function saveInitialResult(initialResult: MultipleInitialResultJSON<Model> | MultipleInitialResult<Model>)
+    async function saveInitialResult(initialResult: MultipleInitialResultJSON<Model> | MultipleInitialResult<Model> | SingleInitialResultJSON<Model> | SingleInitialResult<Model>) {
+        if (db.isServerDatabase()) {
+            throw new Error("fromInitialResult should only be called on client!");
+        }
+
+        if (initialResult.isJson === false) {
+            initialResult = initialResult.toJSON();
+        }
+        const [lastQueryDate] = await prepareSync(initialResult.query);
+        const {syncContainer} ="entities" in initialResult ? initialResult.entities : initialResult.entity;
+
+        const modelId = Database.getModelIdFor(model);
+
+        const deletedEntities = await repository.find({...initialResult.query, select: ["id"]} as FindManyOptions);
+        const deleted = deletedEntities.map((m) => m.id).filter(id => !syncContainer[modelId][id]);
+
+        const result: SyncResult<SyncError> = {
+            success: true,
+            deleted,
+            lastQueryDate: initialResult.date,
+            syncContainer
+        };
+        return handleSyncResult(result, lastQueryDate);
+    }
+
     return {
         saveAndSync,
         save,
         remove,
+        saveInitialResult,
 
         async removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>) {
             if (db.isClientDatabase() && options?.runOnServer !== false) {
@@ -238,20 +296,24 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         },
 
         async initialFind(options?: FindManyOptions<InstanceType<Model>>) {
-            return new MultipleInitialResult(model, await repository.find(options));
+            const syncDate = new Date();
+            return new MultipleInitialResult(model, await repository.find(options), syncDate, options);
         },
 
         async initialFindOne(options: FindOneOptions<InstanceType<Model>>) {
-            return new SingleInitialResult(model, await repository.findOne(options));
+            const syncDate = new Date();
+            return new SingleInitialResult(model, await repository.findOne(options), syncDate, options);
         },
 
         async initialFindOneBy(options: FindOptionsWhere<InstanceType<Model>> | FindOptionsWhere<InstanceType<Model>>[]) {
-            return new SingleInitialResult(model, await repository.findOneBy(options));
+            const syncDate = new Date();
+            return new SingleInitialResult(model, await repository.findOneBy(options), syncDate, {where: options});
         },
 
         async initialFindOneById(id: number) {
-            return new SingleInitialResult(model, await repository.findOneBy({id} as FindOptionsWhere<InstanceType<Model>>));
-        }
+            const syncDate = new Date();
+            return new SingleInitialResult(model, await repository.findOneBy({id} as FindOptionsWhere<InstanceType<Model>>), syncDate, {where: {id}} as FindOneOptions<InstanceType<Model>>);
+        },
     };
 }
 

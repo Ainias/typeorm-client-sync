@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Database = void 0;
 const typeorm_1 = require("typeorm");
 const js_helper_1 = require("js-helper");
-const LastQueryDate_1 = require("./LastSyncDate/LastQueryDate");
+const LastQueryDate_1 = require("./LastQueryDate/LastQueryDate");
 class Database {
     constructor(options) {
         this.connectionPromise = new js_helper_1.PromiseWithHandlers();
@@ -147,7 +147,10 @@ class Database {
                 if (typeof query === 'string') {
                     return fetch(query, Object.assign({ method: 'POST', headers: {
                             'Content-Type': 'application/json',
-                        }, body: JSON.stringify({ lastQueryDate, queryOptions, extraData }) }, fetchOptions)).then((res) => res.json()).catch(e => console.error("LOG error:", e));
+                        }, body: JSON.stringify({ lastQueryDate, queryOptions, extraData }) }, fetchOptions)).then((res) => res.json()).catch(e => {
+                        console.error("LOG error:", e);
+                        return { success: false, error: e };
+                    });
                 }
                 return query(lastQueryDate, queryOptions, extraData);
             }

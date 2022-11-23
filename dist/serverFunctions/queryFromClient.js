@@ -45,15 +45,12 @@ function queryFromClient(lastQueryDate, queryOptions, syncOne = false) {
         const entityPromise = syncOne ? repository.findOne(queryOptions).then(entity => entity ? [entity] : []) : repository.find(queryOptions);
         const deletedPromise = syncOne ? repository.findOne(deleteOptions).then(entity => entity ? [entity] : []) : repository.find(deleteOptions);
         const entities = yield entityPromise;
-        const entityContainer = {};
-        entities.forEach((entity) => {
-            SyncHelper_1.SyncHelper.addToEntityContainer(entity, entityContainer);
-        });
         const deleted = (yield deletedPromise).map((m) => m.id);
+        const { syncContainer } = SyncHelper_1.SyncHelper.toServerResult(entities);
         return {
             lastQueryDate: newLastQueryDate,
             deleted,
-            syncContainer: SyncHelper_1.SyncHelper.convertToSyncContainer(entityContainer),
+            syncContainer,
         };
     });
 }

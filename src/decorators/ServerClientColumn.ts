@@ -1,7 +1,7 @@
 import {SyncModel} from "../SyncModel";
 import {Database} from "../Database";
 import {Column, ColumnOptions} from "typeorm";
-import {SimpleColumnType} from "typeorm/driver/types/ColumnTypes";
+import type {SimpleColumnType} from "typeorm/driver/types/ColumnTypes";
 
 export function ServerClientColumn(serverOptions: ColumnOptions | SimpleColumnType, clientOptions: ColumnOptions | SimpleColumnType, baseOptions: ColumnOptions = {}) {
     return function decorator(object: SyncModel, propertyName: string) {

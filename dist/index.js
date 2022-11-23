@@ -21,7 +21,7 @@ __exportStar(require("./Errors/SyncError"), exports);
 __exportStar(require("./Errors/SyncResult"), exports);
 __exportStar(require("./InitialResult/MultipleInitialResult"), exports);
 __exportStar(require("./InitialResult/SingleInitialResult"), exports);
-__exportStar(require("./LastSyncDate/LastQueryDate"), exports);
+__exportStar(require("./LastQueryDate/LastQueryDate"), exports);
 __exportStar(require("./Repository/SyncRepository"), exports);
 __exportStar(require("./Sync/JsonOperators"), exports);
 __exportStar(require("./Sync/SyncHelper"), exports);

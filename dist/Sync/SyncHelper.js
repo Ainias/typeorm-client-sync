@@ -96,6 +96,9 @@ class SyncHelper {
                             else if (entity[c.propertyName] === null) {
                                 obj[c.propertyName] = null;
                             }
+                            else {
+                                obj[c.propertyName] = undefined;
+                            }
                             break;
                         }
                     }

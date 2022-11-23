@@ -1,6 +1,7 @@
 import {SyncModel} from "../SyncModel";
 import {Database} from "../Database";
 import {SyncHelper} from "../Sync/SyncHelper";
+import {FindManyOptions} from "typeorm";
 
 export type MultipleInitialResultJSON<ModelType extends typeof SyncModel = any> = ReturnType<MultipleInitialResult<ModelType>['toJSON']>;
 
@@ -9,14 +10,16 @@ export class MultipleInitialResult<ModelType extends typeof SyncModel> {
     date: Date;
     model: ModelType;
     entities: InstanceType<ModelType>[];
-    isJson: boolean;
+    isJson: false;
+    query?: FindManyOptions<InstanceType<ModelType>>;
 
-    constructor(model: ModelType, entities: InstanceType<ModelType>[]) {
+    constructor(model: ModelType, entities: InstanceType<ModelType>[], date: Date, query?: FindManyOptions<InstanceType<ModelType>>) {
         this.model = model;
         this.entities = entities;
         this.isServer = typeof window === 'undefined';
-        this.date = new Date();
+        this.date = date;
         this.isJson = false;
+        this.query = query;
     }
 
     toJSON() {
@@ -26,7 +29,8 @@ export class MultipleInitialResult<ModelType extends typeof SyncModel> {
             date: this.date.toISOString(),
             entities: SyncHelper.toServerResult(this.entities),
             modelId,
-            isJson: true,
+            isJson: true as const,
+            query: this.query, // TODO umwandeln?
         };
     }
 
@@ -36,9 +40,9 @@ export class MultipleInitialResult<ModelType extends typeof SyncModel> {
         if (!('modelId' in jsonData)) {
             return jsonData;
         }
+
         const model = Database.getModelForId(jsonData.modelId) as ModelType;
-        const result = new MultipleInitialResult(model, []) as MultipleInitialResult<ModelType>;
-        result.date = new Date(jsonData.date);
+        const result = new MultipleInitialResult(model, [], new Date(jsonData.date), jsonData.query) as MultipleInitialResult<ModelType>;
         result.isServer = jsonData.isServer;
         result.entities = SyncHelper.fromServerResult(
             model,

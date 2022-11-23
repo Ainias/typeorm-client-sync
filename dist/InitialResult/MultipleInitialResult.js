@@ -4,12 +4,13 @@ exports.MultipleInitialResult = void 0;
 const Database_1 = require("../Database");
 const SyncHelper_1 = require("../Sync/SyncHelper");
 class MultipleInitialResult {
-    constructor(model, entities) {
+    constructor(model, entities, date, query) {
         this.model = model;
         this.entities = entities;
         this.isServer = typeof window === 'undefined';
-        this.date = new Date();
+        this.date = date;
         this.isJson = false;
+        this.query = query;
     }
     toJSON() {
         const modelId = Database_1.Database.getModelIdFor(this.model);
@@ -19,6 +20,7 @@ class MultipleInitialResult {
             entities: SyncHelper_1.SyncHelper.toServerResult(this.entities),
             modelId,
             isJson: true,
+            query: this.query, // TODO umwandeln?
         };
     }
     static fromJSON(jsonData) {
@@ -26,8 +28,7 @@ class MultipleInitialResult {
             return jsonData;
         }
         const model = Database_1.Database.getModelForId(jsonData.modelId);
-        const result = new MultipleInitialResult(model, []);
-        result.date = new Date(jsonData.date);
+        const result = new MultipleInitialResult(model, [], new Date(jsonData.date), jsonData.query);
         result.isServer = jsonData.isServer;
         result.entities = SyncHelper_1.SyncHelper.fromServerResult(model, jsonData.entities);
         return result;

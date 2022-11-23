@@ -5,7 +5,7 @@ export * from './Errors/SyncError';
 export * from './Errors/SyncResult';
 export * from './InitialResult/MultipleInitialResult';
 export * from './InitialResult/SingleInitialResult';
-export * from './LastSyncDate/LastQueryDate';
+export * from './LastQueryDate/LastQueryDate';
 export * from './Repository/SyncRepository';
 export * from './Sync/JsonOperators';
 export * from './Sync/SyncHelper';

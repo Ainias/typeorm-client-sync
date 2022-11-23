@@ -2,8 +2,8 @@ import type { SyncModel } from "../SyncModel";
 import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, RemoveOptions, Repository, SaveOptions } from "typeorm";
 import { Database } from "../Database";
 import { JSONValue } from "js-helper";
-import { MultipleInitialResult } from "../InitialResult/MultipleInitialResult";
-import { SingleInitialResult } from "../InitialResult/SingleInitialResult";
+import { MultipleInitialResult, MultipleInitialResultJSON } from "../InitialResult/MultipleInitialResult";
+import { SingleInitialResult, SingleInitialResultJSON } from "../InitialResult/SingleInitialResult";
 export declare type SyncOptions<T> = T & {
     runOnServer?: boolean;
     extraData?: JSONValue;
@@ -34,6 +34,24 @@ export declare function waitForSyncRepository<T extends typeof SyncModel>(model:
     };
     save: (__0_0: DeepPartial<InstanceType<T>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<T>> & InstanceType<T>>;
     remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
+    saveInitialResult: {
+        (initialResult: SingleInitialResult<T> | {
+            isServer: boolean;
+            date: string;
+            entity: import("../Sync/SyncTypes").SingleSyncResult;
+            modelId: number;
+            isJson: true;
+            query: FindOneOptions<InstanceType<T>>;
+        }): any;
+        (initialResult: MultipleInitialResult<T> | {
+            isServer: boolean;
+            date: string;
+            entities: import("../Sync/SyncTypes").MultipleSyncResults;
+            modelId: number;
+            isJson: true;
+            query: FindManyOptions<InstanceType<T>>;
+        }): any;
+    };
     removeAndSync(entity: InstanceType<T>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<T>>;
     findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
     promiseFindAndSync(options?: FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
@@ -55,6 +73,10 @@ export declare function createSyncRepositoryExtension<Model extends typeof SyncM
     };
     save: (__0_0: DeepPartial<InstanceType<Model>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<Model>> & InstanceType<Model>>;
     remove: (__0_0: InstanceType<Model>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<Model>>;
+    saveInitialResult: {
+        (initialResult: SingleInitialResultJSON<Model> | SingleInitialResult<Model>): any;
+        (initialResult: MultipleInitialResultJSON<Model> | MultipleInitialResult<Model>): any;
+    };
     removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model>>;
     findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<Model>>, InstanceType<Model>[]>): Promise<void>;
     promiseFindAndSync(options?: FindManyOptions<InstanceType<Model>>): Promise<[InstanceType<Model>[], InstanceType<Model>[]]>;
@@ -83,6 +105,24 @@ declare class TypeWrapper<T extends typeof SyncModel> {
         };
         save: (__0_0: DeepPartial<InstanceType<T>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<T>> & InstanceType<T>>;
         remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
+        saveInitialResult: {
+            (initialResult: SingleInitialResult<T> | {
+                isServer: boolean;
+                date: string;
+                entity: import("../Sync/SyncTypes").SingleSyncResult;
+                modelId: number;
+                isJson: true;
+                query: FindOneOptions<InstanceType<T>>;
+            }): any;
+            (initialResult: MultipleInitialResult<T> | {
+                isServer: boolean;
+                date: string;
+                entities: import("../Sync/SyncTypes").MultipleSyncResults;
+                modelId: number;
+                isJson: true;
+                query: FindManyOptions<InstanceType<T>>;
+            }): any;
+        };
         removeAndSync(entity: InstanceType<T>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<T>>;
         findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
         promiseFindAndSync(options?: FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;

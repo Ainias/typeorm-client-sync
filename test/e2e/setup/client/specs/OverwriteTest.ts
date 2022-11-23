@@ -11,17 +11,21 @@ class OverwriteTest extends Testcase<any> {
         const [client, server] = await postRepository.promiseFindAndSync({relations: ["author", "comments"]});
         const saved = await window["queryDB"]("SELECT * FROM post;");
 
-        // const [client2, server2] = await postRepository.promiseFindAndSync();
-        // const saved2 = await window["queryDB"]("SELECT * FROM post;");
+        const [client2, server2] = await postRepository.promiseFindAndSync();
+        const saved2 = await window["queryDB"]("SELECT * FROM post;");
 
         return {
             server,
             client,
             saved,
 
-            server2: server,
-            client2: client,
-            saved2: saved,
+            server2,
+            client2,
+            saved2,
+
+            // server2: server,
+            // client2: client,
+            // saved2: saved,
         };
     }
 
@@ -38,8 +42,8 @@ class OverwriteTest extends Testcase<any> {
         this.expectTruthLike(server[0].author);
         this.expectTruthLike(server[0].comments);
 
-        this.expectEqual(server2[0].author.id, 1);
-        this.expectEqual(saved[0].authorId, 1);
+        this.expectFalseLike(server2[0].author);
+        this.expectFalseLike(server2[0].comments);
 
         this.expectEqual(client2.length, 5);
         this.expectEqual(server2.length, 5);

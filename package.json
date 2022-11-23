@@ -22,7 +22,7 @@
   "peerDependencies": {
     "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.9",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.3.3"
+    "typeorm": "git+https://github.com/Ainias/typeorm.git#develop"
   },
   "devDependencies": {
     "typescript": "^4.6.3",

@@ -1,9 +1,9 @@
-import {DataSource, DataSourceOptions, FindManyOptions} from 'typeorm';
+import {DataSource, DataSourceOptions} from 'typeorm';
 import type {SyncModel} from './SyncModel';
 import {JSONValue, PromiseWithHandlers} from 'js-helper';
 import {PersistError} from './Errors/PersistError';
 import type {SyncResult} from './Errors/SyncResult';
-import {LastQueryDate} from './LastSyncDate/LastQueryDate';
+import {LastQueryDate} from './LastQueryDate/LastQueryDate';
 import {QueryError} from './Errors/QueryError';
 import {SyncContainer} from "./Sync/SyncTypes";
 import type {SyncJsonOptions, SyncRepository} from "./Repository/SyncRepository";
@@ -194,7 +194,10 @@ export class Database {
                     },
                     body: JSON.stringify({lastQueryDate, queryOptions, extraData}),
                     ...fetchOptions,
-                }).then((res) => res.json()).catch(e => console.error("LOG error:", e));
+                }).then((res) => res.json()).catch(e => {
+                    console.error("LOG error:", e);
+                    return {success: false, error: e}
+                });
             }
             return query(lastQueryDate, queryOptions, extraData);
         }

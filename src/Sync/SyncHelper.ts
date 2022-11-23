@@ -125,6 +125,8 @@ export class SyncHelper {
                                 obj[c.propertyName] = entity[c.propertyName].id;
                             } else if (entity[c.propertyName] === null) {
                                 obj[c.propertyName] = null;
+                            } else {
+                                obj[c.propertyName] = undefined;
                             }
                             break;
                         }

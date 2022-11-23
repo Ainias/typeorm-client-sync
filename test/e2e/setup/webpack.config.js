@@ -24,7 +24,7 @@ let moduleExports = {
     },
     resolve: {
         extensions: [".ts", ".js"],
-        fallback: {fs: false, path: false}
+        fallback: {fs: false, path: false, crypto: false}
     },
 
     plugins: [

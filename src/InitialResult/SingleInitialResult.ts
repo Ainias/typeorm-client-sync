@@ -1,6 +1,7 @@
 import {SyncModel} from "../SyncModel";
 import {Database} from "../Database";
 import {SyncHelper} from "../Sync/SyncHelper";
+import {FindOneOptions} from "typeorm";
 
 export type SingleInitialResultJSON<ModelType extends typeof SyncModel = any> = ReturnType<
     SingleInitialResult<ModelType>['toJSON']
@@ -11,14 +12,16 @@ export class SingleInitialResult<ModelType extends typeof SyncModel> {
     date: Date;
     model: ModelType;
     entity: InstanceType<ModelType> | null;
-    isJson: boolean;
+    isJson: false;
+    query: FindOneOptions<InstanceType<ModelType>>;
 
-    constructor(model: ModelType, entity: InstanceType<ModelType> | null) {
+    constructor(model: ModelType, entity: InstanceType<ModelType> | null, date: Date, query: FindOneOptions<InstanceType<ModelType>>) {
         this.entity = entity;
         this.model = model;
         this.isServer = typeof window === 'undefined';
-        this.date = new Date();
+        this.date = date;
         this.isJson = false;
+        this.query = query;
     }
 
     toJSON() {
@@ -28,7 +31,8 @@ export class SingleInitialResult<ModelType extends typeof SyncModel> {
             date: this.date.toISOString(),
             entity: this.entity ? SyncHelper.toServerResult(this.entity) : null,
             modelId,
-            isJson: false,
+            isJson: true as const,
+            query: this.query // TODO umwandeln?
         };
     }
 
@@ -40,8 +44,7 @@ export class SingleInitialResult<ModelType extends typeof SyncModel> {
         }
 
         const model = Database.getModelForId(jsonData.modelId) as ModelType;
-        const result = new SingleInitialResult(model,null);
-        result.date = new Date(jsonData.date);
+        const result = new SingleInitialResult(model,null, new Date(jsonData.date), jsonData.query);
         result.isServer = jsonData.isServer;
         result.entity = jsonData.entity
             ? SyncHelper.fromServerResult<ModelType>(
