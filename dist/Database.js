@@ -11,15 +11,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Database = void 0;
 const typeorm_1 = require("typeorm");
-const js_helper_1 = require("js-helper");
+const js_helper_1 = require("@ainias42/js-helper");
 const LastQueryDate_1 = require("./LastQueryDate/LastQueryDate");
 class Database {
-    constructor(options) {
-        this.connectionPromise = new js_helper_1.PromiseWithHandlers();
-        this.connectionTry = 0;
-        this.repositories = {};
-        this.options = Object.assign({ entities: [] }, options);
-    }
     static addDecoratorHandler(handler) {
         this.decoratorHandlers.push(handler);
     }
@@ -43,7 +37,8 @@ class Database {
         });
     }
     static getInstance() {
-        return this.instance;
+        var _a;
+        return (_a = this.instance) !== null && _a !== void 0 ? _a : undefined;
     }
     static waitForInstance() {
         return this.instancePromise;
@@ -60,6 +55,13 @@ class Database {
     static getModelForId(modelId) {
         return this.syncModels[modelId];
     }
+    constructor(options) {
+        this.connectionPromise = new js_helper_1.PromiseWithHandlers();
+        this.connectionTry = 0;
+        this.repositories = {};
+        this.repositoryPromises = {};
+        this.options = Object.assign({ entities: [] }, options);
+    }
     reconnect(options) {
         return __awaiter(this, void 0, void 0, function* () {
             this.options = Object.assign({ entities: [] }, options);
@@ -68,7 +70,7 @@ class Database {
                 this.source = undefined;
                 this.connectionPromise = new js_helper_1.PromiseWithHandlers();
             }
-            this.repositories = {};
+            this.repositoryPromises = {};
             this.connect();
             return this;
         });
@@ -117,6 +119,9 @@ class Database {
             }
             return connection;
         });
+    }
+    getConnection() {
+        return this.source;
     }
     isClientDatabase() {
         return this.options.isClient === true;
@@ -189,15 +194,25 @@ class Database {
             return { success: false, error: { message: 'Database is not a client database!' } };
         });
     }
+    setRepository(model, repository) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        this.repositories[model] = repository;
+    }
+    getRepository(model) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        return this.repositories[model];
+    }
     setRepositoryPromise(model, repositoryPromise) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        this.repositories[model] = repositoryPromise;
+        this.repositoryPromises[model] = repositoryPromise;
     }
     getRepositoryPromise(model) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        return this.repositories[model];
+        return this.repositoryPromises[model];
     }
 }
 exports.Database = Database;

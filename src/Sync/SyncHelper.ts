@@ -5,7 +5,7 @@ import {RelationMetadataArgs} from 'typeorm/metadata-args/RelationMetadataArgs';
 import {FindOperator, FindOperatorType, FindOptionsWhere, getMetadataArgsStorage} from "typeorm";
 import {JsonOperators} from "./JsonOperators";
 import {EntityContainer, IdContainer, MultipleSyncResults, SingleSyncResult, SyncContainer} from "./SyncTypes";
-import {JSONObject} from "js-helper";
+import {JSONObject} from "@ainias42/js-helper";
 
 export class SyncHelper {
     static getFieldDefinitionsFor(model: typeof SyncModel) {

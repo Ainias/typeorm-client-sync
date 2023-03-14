@@ -1,20 +1,65 @@
 import type { SyncModel } from "../SyncModel";
 import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, RemoveOptions, Repository, SaveOptions } from "typeorm";
 import { Database } from "../Database";
-import { JSONValue } from "js-helper";
+import { JSONValue } from "@ainias42/js-helper";
 import { MultipleInitialResult, MultipleInitialResultJSON } from "../InitialResult/MultipleInitialResult";
 import { SingleInitialResult, SingleInitialResultJSON } from "../InitialResult/SingleInitialResult";
-export declare type SyncOptions<T> = T & {
+export type SyncOptions<T> = T & {
     runOnServer?: boolean;
     extraData?: JSONValue;
 };
-export declare type SyncJsonOptions = FindManyOptions & {
+export type SyncJsonOptions = FindManyOptions & {
     modelId: number;
 };
-export declare type SyncWithCallbackOptions<T, Result> = SyncOptions<T> & {
+export type SyncWithCallbackOptions<T, Result> = SyncOptions<T> & {
     runOnClient?: boolean;
     callback: (value: Result, isServerData: boolean) => void;
     errorCallback?: (error: any, isServerError: boolean) => void;
+};
+export declare function getSyncRepository<T extends typeof SyncModel>(model: T): Repository<InstanceType<T>> & {
+    saveAndSync: {
+        (entities: InstanceType<T>[], options?: SaveOptions & {
+            runOnServer?: boolean;
+            extraData?: JSONValue;
+        } & {
+            reload: false;
+            clientOnly: true;
+        }): any;
+        (entity: InstanceType<T>, options?: SaveOptions & {
+            runOnServer?: boolean;
+            extraData?: JSONValue;
+        } & {
+            reload: false;
+        }): any;
+    };
+    save: (__0_0: DeepPartial<InstanceType<T>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<T>> & InstanceType<T>>;
+    remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
+    saveInitialResult: {
+        (initialResult: SingleInitialResult<T> | {
+            isServer: boolean;
+            date: string;
+            entity: import("../Sync/SyncTypes").SingleSyncResult;
+            modelId: number;
+            isJson: true;
+            query: FindOneOptions<InstanceType<T>>;
+        }): any;
+        (initialResult: MultipleInitialResult<T> | {
+            isServer: boolean;
+            date: string;
+            entities: import("../Sync/SyncTypes").MultipleSyncResults;
+            modelId: number;
+            isJson: true;
+            query: FindManyOptions<InstanceType<T>>;
+        }): any;
+    };
+    removeAndSync(entity: InstanceType<T>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<T>>;
+    findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
+    promiseFindAndSync(options?: FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
+    findOneAndSync(options: SyncWithCallbackOptions<FindOneOptions<InstanceType<T>>, InstanceType<T>>): Promise<void>;
+    initialFind(options?: FindManyOptions<InstanceType<T>>): Promise<MultipleInitialResult<T>>;
+    initialFindOne(options: FindOneOptions<InstanceType<T>>): Promise<SingleInitialResult<T>>;
+    initialFindOneBy(options: FindOptionsWhere<InstanceType<T>> | FindOptionsWhere<InstanceType<T>>[]): Promise<SingleInitialResult<T>>;
+    initialFindOneById(id: number): Promise<SingleInitialResult<T>>;
 };
 export declare function waitForSyncRepository<T extends typeof SyncModel>(model: T): Promise<Repository<InstanceType<T>> & {
     saveAndSync: {
@@ -133,5 +178,5 @@ declare class TypeWrapper<T extends typeof SyncModel> {
         initialFindOneById(id: number): Promise<SingleInitialResult<T>>;
     }>;
 }
-export declare type SyncRepository<T extends typeof SyncModel> = Awaited<ReturnType<TypeWrapper<T>["mediate"]>>;
+export type SyncRepository<T extends typeof SyncModel> = Awaited<ReturnType<TypeWrapper<T>["mediate"]>>;
 export {};

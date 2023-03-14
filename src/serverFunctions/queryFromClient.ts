@@ -1,7 +1,7 @@
 import {FindManyOptions, FindOneOptions, IsNull, MoreThan, Not} from 'typeorm';
 import {Database} from '../Database';
 import {SyncHelper} from '../Sync/SyncHelper';
-import {JsonHelper} from 'js-helper';
+import {JsonHelper} from '@ainias42/js-helper';
 import {SyncJsonOptions, waitForSyncRepository} from "../Repository/SyncRepository";
 
 export async function queryFromClient(
@@ -41,7 +41,7 @@ export async function queryFromClient(
 
     const entities = await entityPromise;
     const deleted = (await deletedPromise).map((m) => m.id);
-    const {syncContainer} = SyncHelper.toServerResult(entities)
+    const {syncContainer} = SyncHelper.toServerResult(entities);
 
     return {
         lastQueryDate: newLastQueryDate,

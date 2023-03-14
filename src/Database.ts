@@ -1,6 +1,6 @@
 import {DataSource, DataSourceOptions} from 'typeorm';
 import type {SyncModel} from './SyncModel';
-import {JSONValue, PromiseWithHandlers} from 'js-helper';
+import {JSONValue, PromiseWithHandlers} from '@ainias42/js-helper';
 import {PersistError} from './Errors/PersistError';
 import type {SyncResult} from './Errors/SyncResult';
 import {LastQueryDate} from './LastQueryDate/LastQueryDate';
@@ -50,7 +50,7 @@ export class Database {
     }
 
     static getInstance() {
-        return this.instance;
+        return this.instance ?? undefined;
     }
 
     static waitForInstance() {
@@ -76,7 +76,8 @@ export class Database {
     private source?: DataSource;
     private connectionPromise: PromiseWithHandlers<DataSource> = new PromiseWithHandlers<DataSource>();
     private connectionTry = 0;
-    private repositories: Record<any, Promise<SyncRepository<any>>> = {};
+    private repositories: Record<any, SyncRepository<any>> = {};
+    private repositoryPromises: Record<any, Promise<SyncRepository<any>>> = {};
 
     private constructor(options: DatabaseOptions) {
         this.options = {entities: [], ...options};
@@ -89,7 +90,7 @@ export class Database {
             this.source = undefined;
             this.connectionPromise = new PromiseWithHandlers<DataSource>();
         }
-        this.repositories = {};
+        this.repositoryPromises = {};
         this.connect();
         return this;
     }
@@ -144,6 +145,10 @@ export class Database {
         });
     }
 
+    getConnection(){
+        return this.source;
+    }
+
     isClientDatabase() {
         return this.options.isClient === true;
     }
@@ -196,7 +201,7 @@ export class Database {
                     ...fetchOptions,
                 }).then((res) => res.json()).catch(e => {
                     console.error("LOG error:", e);
-                    return {success: false, error: e}
+                    return {success: false, error: e};
                 });
             }
             return query(lastQueryDate, queryOptions, extraData);
@@ -241,16 +246,30 @@ export class Database {
         return {success: false, error: {message: 'Database is not a client database!'}};
     }
 
-    setRepositoryPromise(model: typeof SyncModel, repositoryPromise: Promise<SyncRepository<any>>) {
+
+
+    setRepository<T extends typeof SyncModel>(model: T, repository: SyncRepository<T>) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        this.repositories[model] = repositoryPromise;
+        this.repositories[model] = repository;
     }
 
-    getRepositoryPromise(model: typeof SyncModel) {
+    getRepository<T extends typeof SyncModel>(model: T) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        return this.repositories[model];
+        return this.repositories[model] as SyncRepository<T>|undefined;
+    }
+
+    setRepositoryPromise<T extends typeof SyncModel>(model: T, repositoryPromise: Promise<SyncRepository<T>>) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        this.repositoryPromises[model] = repositoryPromise;
+    }
+
+    getRepositoryPromise<T extends typeof SyncModel>(model: T) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        return this.repositoryPromises[model] as Promise<SyncRepository<T>>|undefined;
     }
 
 

@@ -9,11 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSyncRepositoryExtension = exports.waitForSyncRepository = void 0;
+exports.createSyncRepositoryExtension = exports.waitForSyncRepository = exports.getSyncRepository = void 0;
 const Database_1 = require("../Database");
 const LastQueryDate_1 = require("../LastQueryDate/LastQueryDate");
 const SyncHelper_1 = require("../Sync/SyncHelper");
-const js_helper_1 = require("js-helper");
+const js_helper_1 = require("@ainias42/js-helper");
 const MultipleInitialResult_1 = require("../InitialResult/MultipleInitialResult");
 const SingleInitialResult_1 = require("../InitialResult/SingleInitialResult");
 function createSyncRepository(model, db) {
@@ -23,13 +23,26 @@ function createSyncRepository(model, db) {
         return repository.extend(createSyncRepositoryExtension(model, repository, db));
     });
 }
+function getSyncRepository(model) {
+    const db = Database_1.Database.getInstance();
+    let syncRepository = db === null || db === void 0 ? void 0 : db.getRepository(model);
+    if (!syncRepository && db) {
+        const connection = db.getConnection();
+        const repository = connection.getRepository(model);
+        syncRepository = repository.extend(createSyncRepositoryExtension(model, repository, db));
+        db.setRepository(model, syncRepository);
+        db.setRepositoryPromise(model, Promise.resolve(syncRepository));
+    }
+    return syncRepository;
+}
+exports.getSyncRepository = getSyncRepository;
 function waitForSyncRepository(model) {
     return __awaiter(this, void 0, void 0, function* () {
         const db = yield Database_1.Database.waitForInstance();
         if (!db.getRepositoryPromise(model)) {
             db.setRepositoryPromise(model, createSyncRepository(model, db));
         }
-        return yield db.getRepositoryPromise(model);
+        return db.getRepositoryPromise(model);
     });
 }
 exports.waitForSyncRepository = waitForSyncRepository;

@@ -1,5 +1,5 @@
 import type {SyncModel} from "../SyncModel";
-import {ExcludePropertyType, OnlyPropertyType, ReplacePropertyType} from "js-helper";
+import {ExcludePropertyType, OnlyPropertyType, ReplacePropertyType} from "@ainias42/js-helper";
 
 export type JSONSyncModel<Model extends SyncModel> = {
     // eslint-disable-next-line @typescript-eslint/ban-types

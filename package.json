@@ -1,5 +1,5 @@
 {
-  "name": "typeorm-sync",
+  "name": "@ainias42/typeorm-sync",
   "version": "0.0.1",
   "description": "synchronization between a server and client typeorm instance",
   "main": "dist/index.js",
@@ -13,6 +13,9 @@
     "type": "git",
     "url": "git+https://github.com/Ainias/typeorm-client-sync.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -20,7 +23,7 @@
   },
   "homepage": "https://github.com/Ainias/typeorm-client-sync#readme",
   "peerDependencies": {
-    "js-helper": "git+https://github.com/Ainias/js-helper.git#0.7.9",
+    "@ainias42/js-helper": "^0.7.12",
     "reflect-metadata": "^0.1.13",
     "typeorm": "git+https://github.com/Ainias/typeorm.git#develop"
   },
