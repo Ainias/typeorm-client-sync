@@ -1,5 +1,5 @@
 import {Testcase} from "./Testcase";
-import {Database} from "typeorm-sync";
+import {Database} from "@ainias42/typeorm-sync";
 
 export class TestcaseRunner {
     private static instance: TestcaseRunner = new TestcaseRunner();

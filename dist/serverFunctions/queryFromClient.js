@@ -13,7 +13,7 @@ exports.queryFromClient = void 0;
 const typeorm_1 = require("typeorm");
 const Database_1 = require("../Database");
 const SyncHelper_1 = require("../Sync/SyncHelper");
-const js_helper_1 = require("js-helper");
+const js_helper_1 = require("@ainias42/js-helper");
 const SyncRepository_1 = require("../Repository/SyncRepository");
 function queryFromClient(lastQueryDate, queryOptions, syncOne = false) {
     var _a, _b;

@@ -1,3 +1,3 @@
-export declare type SyncError = {
+export type SyncError = {
     message: string;
 };

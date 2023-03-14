@@ -1,6 +1,6 @@
 import { SyncModel } from "../SyncModel";
 import { FindManyOptions } from "typeorm";
-export declare type MultipleInitialResultJSON<ModelType extends typeof SyncModel = any> = ReturnType<MultipleInitialResult<ModelType>['toJSON']>;
+export type MultipleInitialResultJSON<ModelType extends typeof SyncModel = any> = ReturnType<MultipleInitialResult<ModelType>['toJSON']>;
 export declare class MultipleInitialResult<ModelType extends typeof SyncModel> {
     isServer: boolean;
     date: Date;

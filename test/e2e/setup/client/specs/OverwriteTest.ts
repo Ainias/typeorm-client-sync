@@ -1,6 +1,6 @@
 import {Testcase} from "../Testcase";
 import {TestcaseRunner} from "../TestcaseRunner";
-import { waitForSyncRepository} from "typeorm-sync";
+import { waitForSyncRepository} from "@ainias42/typeorm-sync";
 import {Post} from "../../models/Post";
 
 class OverwriteTest extends Testcase<any> {

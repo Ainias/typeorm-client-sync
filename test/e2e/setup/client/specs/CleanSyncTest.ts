@@ -1,6 +1,6 @@
 import {Testcase} from "../Testcase";
 import {TestcaseRunner} from "../TestcaseRunner";
-import {Database, LastQueryDate, waitForSyncRepository} from "typeorm-sync";
+import {Database, LastQueryDate, waitForSyncRepository} from "@ainias42/typeorm-sync";
 import {Post} from "../../models/Post";
 
 class CleanSyncTest extends Testcase<any> {

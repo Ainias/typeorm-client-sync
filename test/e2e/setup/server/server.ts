@@ -4,7 +4,7 @@ import * as path from 'path';
 
 import express from 'express';
 import {routes} from './routes';
-import {DatabaseOptions, Database} from "typeorm-sync";
+import {DatabaseOptions, Database} from "@ainias42/typeorm-sync";
 import {syncModels} from "../models/syncModels";
 
 //Import Models
@@ -53,8 +53,8 @@ app.use('/api', routes);
 
 app.use(express.static(path.resolve(path.dirname(process.argv[1]), 'public')));
 
-//Handle errors, do not delete next or otherwise it is not an error handler
-app.use(function (err, req, res, next) {
+//Handle errors, do not delete _ or otherwise it is not an error handler
+app.use(function (err, req, res, _) {
     console.error('Error:', err);
     res.status(err.status || 500);
     if (err instanceof Error) {

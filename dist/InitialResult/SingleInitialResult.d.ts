@@ -1,6 +1,6 @@
 import { SyncModel } from "../SyncModel";
 import { FindOneOptions } from "typeorm";
-export declare type SingleInitialResultJSON<ModelType extends typeof SyncModel = any> = ReturnType<SingleInitialResult<ModelType>['toJSON']>;
+export type SingleInitialResultJSON<ModelType extends typeof SyncModel = any> = ReturnType<SingleInitialResult<ModelType>['toJSON']>;
 export declare class SingleInitialResult<ModelType extends typeof SyncModel> {
     isServer: boolean;
     date: Date;

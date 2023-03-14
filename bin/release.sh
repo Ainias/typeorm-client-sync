@@ -26,7 +26,7 @@ git clone $REPOSITORY project
 cd project
 pwd
 
-npm install --legacy-peer-deps
+npm install
 npm run build
 git add -u
 git commit -m "pre-version-commit for version $versionName" || echo "no commit needed"

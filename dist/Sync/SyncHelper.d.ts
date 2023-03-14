@@ -2,7 +2,7 @@ import type { SyncModel } from '../SyncModel';
 import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
 import { FindOptionsWhere } from "typeorm";
 import { EntityContainer, IdContainer, MultipleSyncResults, SingleSyncResult, SyncContainer } from "./SyncTypes";
-import { JSONObject } from "js-helper";
+import { JSONObject } from "@ainias42/js-helper";
 export declare class SyncHelper {
     static getFieldDefinitionsFor(model: typeof SyncModel): {
         columnDefinitions: import("typeorm/metadata-args/ColumnMetadataArgs").ColumnMetadataArgs[];

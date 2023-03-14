@@ -1,5 +1,5 @@
 import * as express from 'express';
-import {queryFromClient} from "typeorm-sync";
+import {queryFromClient} from "@ainias42/typeorm-sync";
 
 const routes = express.Router();
 routes.post('/sync', async (req, res) => {

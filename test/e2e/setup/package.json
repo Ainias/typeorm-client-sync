@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "express": "^4.18.1",
-    "typeorm-sync": "file:../../../",
+    "@ainias42/typeorm-sync": "file:../../../",
     "ts-node": "^10.8.0",
     "mysql2": "^2.3.3",
     "webpack": "^5.72.1",

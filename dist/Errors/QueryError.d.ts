@@ -1,2 +1,2 @@
 import { SyncError } from './SyncError';
-export declare type QueryError = SyncError;
+export type QueryError = SyncError;

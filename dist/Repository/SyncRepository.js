@@ -170,7 +170,7 @@ function createSyncRepositoryExtension(model, repository, db) {
             }
             const [lastQueryDate, relevantSyncOptions] = yield prepareSync(options);
             const result = yield db.queryServer(lastQueryDate.lastQueried, relevantSyncOptions);
-            return handleSyncResult(result, lastQueryDate);
+            yield handleSyncResult(result, lastQueryDate);
         });
     }
     function executeWithSyncAndCallbacks(method, params, syncOptions) {

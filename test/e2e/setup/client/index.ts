@@ -2,7 +2,7 @@ import {TestcaseRunner} from "./TestcaseRunner";
 import "./specs/tests"
 import {syncModels} from "../models/syncModels";
 import SQLjs from 'sql.js';
-import {Database, DatabaseOptions} from "typeorm-sync";
+import {Database, DatabaseOptions} from "@ainias42/typeorm-sync";
 
 const runner = TestcaseRunner.getInstance();
 runner.setDisplay(document.getElementById("state-display") as HTMLDivElement);

@@ -1,5 +1,5 @@
 import {Column, Entity, JoinColumn, ManyToOne, OneToMany} from 'typeorm';
-import {SyncModel} from 'typeorm-sync';
+import {SyncModel} from '@ainias42/typeorm-sync';
 import {Comment} from "./Comment";
 import {Author} from "./Author";
 

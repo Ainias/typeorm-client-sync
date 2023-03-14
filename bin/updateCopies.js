@@ -5,10 +5,10 @@ const fs = require('fs');
 const packageName = require("../package.json").name;
 
 let pathsToProjects = [
-    "/home/silas/Projekte/web/nextjsTest/poc-nextjs",
-    "/home/silas/Projekte/web/typeorm-sync-nextjs",
+    // "/home/silas/Projekte/web/nextjsTest/poc-nextjs",
+    // "/home/silas/Projekte/web/typeorm-sync-nextjs",
     "/home/silas/Projekte/web/bat",
-    "/home/silas/Projekte/web/smd-mail",
+    // "/home/silas/Projekte/web/smd-mail",
     // "/home/silas/Projekte/Web/wordRotator",
     // "/home/silas/Projekte/Web/stories",
     // "/home/silas/Projekte/i9/mbb",

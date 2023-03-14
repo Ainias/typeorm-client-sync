@@ -4,7 +4,7 @@ import { PrimaryGeneratedColumnUUIDOptions } from 'typeorm/decorator/options/Pri
 import { PrimaryGeneratedColumnIdentityOptions } from 'typeorm/decorator/options/PrimaryGeneratedColumnIdentityOptions';
 import { PrimaryColumnOptions } from 'typeorm/decorator/columns/PrimaryColumn';
 import { ColumnType } from 'typeorm/driver/types/ColumnTypes';
-declare type PrimaryServerGeneratedColumnOptions = ({
+type PrimaryServerGeneratedColumnOptions = ({
     strategy?: 'increment';
     generatedOptions?: PrimaryGeneratedColumnNumericOptions;
 } | {
