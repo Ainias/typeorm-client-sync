@@ -92,6 +92,7 @@ export declare class Database {
         initialFindOne(options: import("typeorm").FindOneOptions<InstanceType<T>>): Promise<import(".").SingleInitialResult<T>>;
         initialFindOneBy(options: import("typeorm").FindOptionsWhere<InstanceType<T>> | import("typeorm").FindOptionsWhere<InstanceType<T>>[]): Promise<import(".").SingleInitialResult<T>>;
         initialFindOneById(id: number): Promise<import(".").SingleInitialResult<T>>;
+        getRelevantSyncOptions: (options?: import("typeorm").FindManyOptions<InstanceType<T>>) => SyncJsonOptions;
     };
     setRepositoryPromise<T extends typeof SyncModel>(model: T, repositoryPromise: Promise<SyncRepository<T>>): void;
     getRepositoryPromise<T extends typeof SyncModel>(model: T): Promise<import("typeorm").Repository<InstanceType<T>> & {
@@ -138,5 +139,6 @@ export declare class Database {
         initialFindOne(options: import("typeorm").FindOneOptions<InstanceType<T>>): Promise<import(".").SingleInitialResult<T>>;
         initialFindOneBy(options: import("typeorm").FindOptionsWhere<InstanceType<T>> | import("typeorm").FindOptionsWhere<InstanceType<T>>[]): Promise<import(".").SingleInitialResult<T>>;
         initialFindOneById(id: number): Promise<import(".").SingleInitialResult<T>>;
+        getRelevantSyncOptions: (options?: import("typeorm").FindManyOptions<InstanceType<T>>) => SyncJsonOptions;
     }>;
 }

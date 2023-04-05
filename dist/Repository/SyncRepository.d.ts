@@ -60,6 +60,7 @@ export declare function getSyncRepository<T extends typeof SyncModel>(model: T):
     initialFindOne(options: FindOneOptions<InstanceType<T>>): Promise<SingleInitialResult<T>>;
     initialFindOneBy(options: FindOptionsWhere<InstanceType<T>> | FindOptionsWhere<InstanceType<T>>[]): Promise<SingleInitialResult<T>>;
     initialFindOneById(id: number): Promise<SingleInitialResult<T>>;
+    getRelevantSyncOptions: (options?: FindManyOptions<InstanceType<T>>) => SyncJsonOptions;
 };
 export declare function waitForSyncRepository<T extends typeof SyncModel>(model: T): Promise<Repository<InstanceType<T>> & {
     saveAndSync: {
@@ -105,6 +106,7 @@ export declare function waitForSyncRepository<T extends typeof SyncModel>(model:
     initialFindOne(options: FindOneOptions<InstanceType<T>>): Promise<SingleInitialResult<T>>;
     initialFindOneBy(options: FindOptionsWhere<InstanceType<T>> | FindOptionsWhere<InstanceType<T>>[]): Promise<SingleInitialResult<T>>;
     initialFindOneById(id: number): Promise<SingleInitialResult<T>>;
+    getRelevantSyncOptions: (options?: FindManyOptions<InstanceType<T>>) => SyncJsonOptions;
 }>;
 export declare function createSyncRepositoryExtension<Model extends typeof SyncModel>(model: Model, repository: Repository<InstanceType<Model>>, db: Database): {
     saveAndSync: {
@@ -130,6 +132,7 @@ export declare function createSyncRepositoryExtension<Model extends typeof SyncM
     initialFindOne(options: FindOneOptions<InstanceType<Model>>): Promise<SingleInitialResult<Model>>;
     initialFindOneBy(options: FindOptionsWhere<InstanceType<Model>> | FindOptionsWhere<InstanceType<Model>>[]): Promise<SingleInitialResult<Model>>;
     initialFindOneById(id: number): Promise<SingleInitialResult<Model>>;
+    getRelevantSyncOptions: (options?: FindManyOptions<InstanceType<Model>>) => SyncJsonOptions;
 };
 declare class TypeWrapper<T extends typeof SyncModel> {
     mediate: (model: T) => Promise<Repository<InstanceType<T>> & {
@@ -176,6 +179,7 @@ declare class TypeWrapper<T extends typeof SyncModel> {
         initialFindOne(options: FindOneOptions<InstanceType<T>>): Promise<SingleInitialResult<T>>;
         initialFindOneBy(options: FindOptionsWhere<InstanceType<T>> | FindOptionsWhere<InstanceType<T>>[]): Promise<SingleInitialResult<T>>;
         initialFindOneById(id: number): Promise<SingleInitialResult<T>>;
+        getRelevantSyncOptions: (options?: FindManyOptions<InstanceType<T>>) => SyncJsonOptions;
     }>;
 }
 export type SyncRepository<T extends typeof SyncModel> = Awaited<ReturnType<TypeWrapper<T>["mediate"]>>;

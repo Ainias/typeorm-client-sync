@@ -271,6 +271,4 @@ export class Database {
         // @ts-ignore
         return this.repositoryPromises[model] as Promise<SyncRepository<T>>|undefined;
     }
-
-
 }

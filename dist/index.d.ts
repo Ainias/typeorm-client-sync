@@ -17,6 +17,7 @@ export * from './decorators/PrimaryServerGeneratedColumn';
 export * from './decorators/ServerBeforeInsert';
 export * from './decorators/ServerBeforeUpdate';
 export * from './decorators/ServerClientColumn';
+export * from './index';
 export * from './serverFunctions/persistFromClient';
 export * from './serverFunctions/queryFromClient';
 export * from './serverFunctions/removeOnServer';

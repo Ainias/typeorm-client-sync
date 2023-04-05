@@ -102,7 +102,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         }
     }
 
-    async function prepareSync(options?: FindManyOptions<InstanceType<Model>>) {
+    function getRelevantSyncOptions(options?: FindManyOptions<InstanceType<Model>>){
         const modelId = Database.getModelIdFor(model);
         const relevantSyncOptions: SyncJsonOptions = {
             where: SyncHelper.convertWhereToJson(options?.where ?? {}),
@@ -115,6 +115,12 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         if (options?.skip || options?.take) {
             relevantSyncOptions.order = options?.order;
         }
+
+        return relevantSyncOptions;
+    }
+
+    async function prepareSync(options?: FindManyOptions<InstanceType<Model>>) {
+        const relevantSyncOptions = getRelevantSyncOptions(options);
 
         // TODO primary key through hashing? => Evaluate if hashing and querying is faster than query with full query
         const stringifiedSyncOptions = JSON.stringify(relevantSyncOptions);
@@ -139,7 +145,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             }
             const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
 
-            // // TODO asynchronous saving of entities. Maybe other sqljs version?
+            // // TODO asynchronous saving of entities
             let savePromise = Promise.resolve(undefined);
             Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
                 const syncedModel = Database.getModelForId(Number(queriedModelId));
@@ -157,22 +163,6 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
                 });
             });
 
-
-            // debugger;
-            // const savePromises = [];
-            // Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
-            //     const syncedModel = Database.getModelForId(Number(queriedModelId));
-            //     savePromises.push(waitForSyncRepository(syncedModel).then(async modelRepository => {
-            //         const entities = Object.values(entityMap);
-            //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            //         // @ts-ignore
-            //         return modelRepository.save(entities, {reload: false}, true).catch(e => {
-            //             console.error("got error for saving entities", entities, e);
-            //             throw e;
-            //         });
-            //     }));
-            // });
-            // const savePromise = Promise.all(savePromises);
 
             lastQueryDate.lastQueried = new Date(result.lastQueryDate);
             try {
@@ -236,7 +226,11 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
     async function saveInitialResult(initialResult: MultipleInitialResultJSON<Model> | MultipleInitialResult<Model>)
     async function saveInitialResult(initialResult: MultipleInitialResultJSON<Model> | MultipleInitialResult<Model> | SingleInitialResultJSON<Model> | SingleInitialResult<Model>) {
         if (db.isServerDatabase()) {
-            throw new Error("fromInitialResult should only be called on client!");
+            throw new Error("saveInitialResult should only be called on client!");
+        }
+
+        if (!initialResult.isServer){
+            return;
         }
 
         if (initialResult.isJson === false) {
@@ -256,7 +250,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             lastQueryDate: initialResult.date,
             syncContainer
         };
-        return handleSyncResult(result, lastQueryDate);
+        await handleSyncResult(result, lastQueryDate);
     }
 
     return {
@@ -329,6 +323,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             const syncDate = new Date();
             return new SingleInitialResult(model, await repository.findOneBy({id} as FindOptionsWhere<InstanceType<Model>>), syncDate, {where: {id}} as FindOneOptions<InstanceType<Model>>);
         },
+        getRelevantSyncOptions,
     };
 }
 

@@ -9,6 +9,8 @@ export async function queryFromClient(
     queryOptions: SyncJsonOptions,
     syncOne = false
 ) {
+    console.log("LOG-d queryOptions", queryOptions);
+
     const {modelId} = queryOptions;
     const deleteOptions = JsonHelper.deepCopy(queryOptions);
     queryOptions.where = SyncHelper.convertJsonToWhere(queryOptions.where ?? {});

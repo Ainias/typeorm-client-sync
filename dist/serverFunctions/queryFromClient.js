@@ -18,6 +18,7 @@ const SyncRepository_1 = require("../Repository/SyncRepository");
 function queryFromClient(lastQueryDate, queryOptions, syncOne = false) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        console.log("LOG-d queryOptions", queryOptions);
         const { modelId } = queryOptions;
         const deleteOptions = js_helper_1.JsonHelper.deepCopy(queryOptions);
         queryOptions.where = SyncHelper_1.SyncHelper.convertJsonToWhere((_a = queryOptions.where) !== null && _a !== void 0 ? _a : {});

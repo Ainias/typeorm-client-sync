@@ -81,20 +81,24 @@ function createSyncRepositoryExtension(model, repository, db) {
             }
         });
     }
-    function prepareSync(options) {
+    function getRelevantSyncOptions(options) {
         var _a;
+        const modelId = Database_1.Database.getModelIdFor(model);
+        const relevantSyncOptions = {
+            where: SyncHelper_1.SyncHelper.convertWhereToJson((_a = options === null || options === void 0 ? void 0 : options.where) !== null && _a !== void 0 ? _a : {}),
+            relations: options === null || options === void 0 ? void 0 : options.relations,
+            skip: options === null || options === void 0 ? void 0 : options.skip,
+            take: options === null || options === void 0 ? void 0 : options.take,
+            modelId,
+        };
+        if ((options === null || options === void 0 ? void 0 : options.skip) || (options === null || options === void 0 ? void 0 : options.take)) {
+            relevantSyncOptions.order = options === null || options === void 0 ? void 0 : options.order;
+        }
+        return relevantSyncOptions;
+    }
+    function prepareSync(options) {
         return __awaiter(this, void 0, void 0, function* () {
-            const modelId = Database_1.Database.getModelIdFor(model);
-            const relevantSyncOptions = {
-                where: SyncHelper_1.SyncHelper.convertWhereToJson((_a = options === null || options === void 0 ? void 0 : options.where) !== null && _a !== void 0 ? _a : {}),
-                relations: options === null || options === void 0 ? void 0 : options.relations,
-                skip: options === null || options === void 0 ? void 0 : options.skip,
-                take: options === null || options === void 0 ? void 0 : options.take,
-                modelId,
-            };
-            if ((options === null || options === void 0 ? void 0 : options.skip) || (options === null || options === void 0 ? void 0 : options.take)) {
-                relevantSyncOptions.order = options === null || options === void 0 ? void 0 : options.order;
-            }
+            const relevantSyncOptions = getRelevantSyncOptions(options);
             // TODO primary key through hashing? => Evaluate if hashing and querying is faster than query with full query
             const stringifiedSyncOptions = JSON.stringify(relevantSyncOptions);
             let lastQueryDate = yield LastQueryDate_1.LastQueryDate.findOne({
@@ -116,7 +120,7 @@ function createSyncRepositoryExtension(model, repository, db) {
                     yield repository.remove(result.deleted.map(id => ({ id })));
                 }
                 const modelContainer = SyncHelper_1.SyncHelper.convertToModelContainer(result.syncContainer);
-                // // TODO asynchronous saving of entities. Maybe other sqljs version?
+                // // TODO asynchronous saving of entities
                 let savePromise = Promise.resolve(undefined);
                 Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
                     const syncedModel = Database_1.Database.getModelForId(Number(queriedModelId));
@@ -132,21 +136,6 @@ function createSyncRepositoryExtension(model, repository, db) {
                         });
                     });
                 });
-                // debugger;
-                // const savePromises = [];
-                // Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
-                //     const syncedModel = Database.getModelForId(Number(queriedModelId));
-                //     savePromises.push(waitForSyncRepository(syncedModel).then(async modelRepository => {
-                //         const entities = Object.values(entityMap);
-                //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                //         // @ts-ignore
-                //         return modelRepository.save(entities, {reload: false}, true).catch(e => {
-                //             console.error("got error for saving entities", entities, e);
-                //             throw e;
-                //         });
-                //     }));
-                // });
-                // const savePromise = Promise.all(savePromises);
                 lastQueryDate.lastQueried = new Date(result.lastQueryDate);
                 try {
                     yield savePromise;
@@ -207,7 +196,10 @@ function createSyncRepositoryExtension(model, repository, db) {
     function saveInitialResult(initialResult) {
         return __awaiter(this, void 0, void 0, function* () {
             if (db.isServerDatabase()) {
-                throw new Error("fromInitialResult should only be called on client!");
+                throw new Error("saveInitialResult should only be called on client!");
+            }
+            if (!initialResult.isServer) {
+                return;
             }
             if (initialResult.isJson === false) {
                 initialResult = initialResult.toJSON();
@@ -223,7 +215,7 @@ function createSyncRepositoryExtension(model, repository, db) {
                 lastQueryDate: initialResult.date,
                 syncContainer
             };
-            return handleSyncResult(result, lastQueryDate);
+            yield handleSyncResult(result, lastQueryDate);
         });
     }
     return {
@@ -300,6 +292,7 @@ function createSyncRepositoryExtension(model, repository, db) {
                 return new SingleInitialResult_1.SingleInitialResult(model, yield repository.findOneBy({ id }), syncDate, { where: { id } });
             });
         },
+        getRelevantSyncOptions,
     };
 }
 exports.createSyncRepositoryExtension = createSyncRepositoryExtension;
