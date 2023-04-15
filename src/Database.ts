@@ -8,7 +8,6 @@ import {QueryError} from './Errors/QueryError';
 import {SyncContainer} from "./Sync/SyncTypes";
 import type {SyncJsonOptions, SyncRepository} from "./Repository/SyncRepository";
 import {ServerSubscriber} from "./Subscribers/ServerSubscriber";
-import {ClientSubscriber} from "./Subscribers/ClientSubscriber";
 
 
 export type DatabaseOptions = DataSourceOptions & (
