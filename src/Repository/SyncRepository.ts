@@ -94,12 +94,10 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             if (result.success === true) {
                 SyncHelper.updateEntityContainer(modelContainer, result.syncContainer);
             } else {
-                throw new Error(result.error.message);
+                throw new Error(result.error.message ?? result.error.toString());
             }
         }
-        if (db.isServerDatabase()) {
-            await save(entity as DeepPartial<InstanceType<Model>>, options, true);
-        }
+        await save(entity as DeepPartial<InstanceType<Model>>, options, true);
     }
 
     function getRelevantSyncOptions(options?: FindManyOptions<InstanceType<Model>>){

@@ -13,6 +13,7 @@ exports.Database = void 0;
 const typeorm_1 = require("typeorm");
 const js_helper_1 = require("@ainias42/js-helper");
 const LastQueryDate_1 = require("./LastQueryDate/LastQueryDate");
+const ServerSubscriber_1 = require("./Subscribers/ServerSubscriber");
 class Database {
     static addDecoratorHandler(handler) {
         this.decoratorHandlers.push(handler);
@@ -76,6 +77,7 @@ class Database {
         });
     }
     connect() {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             this.connectionTry++;
             const currentTry = this.connectionTry;
@@ -84,7 +86,16 @@ class Database {
             if (this.isClientDatabase() && entities.indexOf(LastQueryDate_1.LastQueryDate) === -1) {
                 entities.push(LastQueryDate_1.LastQueryDate);
             }
-            this.options = Object.assign(Object.assign({}, this.options), { entities });
+            const subscribers = (_a = this.options.subscribers) !== null && _a !== void 0 ? _a : [];
+            if (this.isServerDatabase()) {
+                if (Array.isArray(subscribers)) {
+                    subscribers.push(ServerSubscriber_1.ServerSubscriber);
+                }
+                else {
+                    subscribers.typeorm_sync_subscriber = ServerSubscriber_1.ServerSubscriber;
+                }
+            }
+            this.options = Object.assign(Object.assign({}, this.options), { entities, subscribers });
             Database.decoratorHandlers.forEach(handler => handler());
             const source = new typeorm_1.DataSource(this.options);
             yield source.initialize().catch(e => console.log("Initialization Error", e));

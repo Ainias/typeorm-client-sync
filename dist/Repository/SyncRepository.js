@@ -62,6 +62,7 @@ function createSyncRepositoryExtension(model, repository, db) {
         throw new Error("Client-Only-Remove used without useClientOnlyRemove-Flag!");
     });
     function saveAndSync(entity, options) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             if (db.isClientDatabase() && (options === null || options === void 0 ? void 0 : options.runOnServer) !== false && !Array.isArray(entity)) {
                 const modelContainer = {};
@@ -73,12 +74,10 @@ function createSyncRepositoryExtension(model, repository, db) {
                     SyncHelper_1.SyncHelper.updateEntityContainer(modelContainer, result.syncContainer);
                 }
                 else {
-                    throw new Error(result.error.message);
+                    throw new Error((_a = result.error.message) !== null && _a !== void 0 ? _a : result.error.toString());
                 }
             }
-            if (db.isServerDatabase()) {
-                yield save(entity, options, true);
-            }
+            yield save(entity, options, true);
         });
     }
     function getRelevantSyncOptions(options) {

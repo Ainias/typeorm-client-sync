@@ -3,8 +3,7 @@ import {
     DeleteDateColumn,
 } from 'typeorm';
 import { PrimaryServerGeneratedColumn } from './decorators/PrimaryServerGeneratedColumn';
-import { ServerBeforeUpdate } from './decorators/ServerBeforeUpdate';
-import { ServerBeforeInsert } from './decorators/ServerBeforeInsert';
+import {ServerVersionColumn} from "./decorators/ServerVersionColumn";
 
 export class SyncModel {
 
@@ -20,14 +19,6 @@ export class SyncModel {
     @DeleteDateColumn()
     deletedAt?: Date;
 
-    @ServerBeforeInsert()
-    updateCreatedAt() {
-        this.createdAt = new Date();
-    }
-
-    @ServerBeforeInsert()
-    @ServerBeforeUpdate()
-    updateUpdatedAt() {
-        this.updatedAt = new Date();
-    }
+    @ServerVersionColumn()
+    version?: number;
 }

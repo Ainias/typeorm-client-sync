@@ -12,15 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SyncModel = void 0;
 const typeorm_1 = require("typeorm");
 const PrimaryServerGeneratedColumn_1 = require("./decorators/PrimaryServerGeneratedColumn");
-const ServerBeforeUpdate_1 = require("./decorators/ServerBeforeUpdate");
-const ServerBeforeInsert_1 = require("./decorators/ServerBeforeInsert");
+const ServerVersionColumn_1 = require("./decorators/ServerVersionColumn");
 class SyncModel {
-    updateCreatedAt() {
-        this.createdAt = new Date();
-    }
-    updateUpdatedAt() {
-        this.updatedAt = new Date();
-    }
 }
 __decorate([
     (0, PrimaryServerGeneratedColumn_1.PrimaryServerGeneratedColumn)(),
@@ -39,17 +32,8 @@ __decorate([
     __metadata("design:type", Date)
 ], SyncModel.prototype, "deletedAt", void 0);
 __decorate([
-    (0, ServerBeforeInsert_1.ServerBeforeInsert)(),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], SyncModel.prototype, "updateCreatedAt", null);
-__decorate([
-    (0, ServerBeforeInsert_1.ServerBeforeInsert)(),
-    (0, ServerBeforeUpdate_1.ServerBeforeUpdate)(),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], SyncModel.prototype, "updateUpdatedAt", null);
+    (0, ServerVersionColumn_1.ServerVersionColumn)(),
+    __metadata("design:type", Number)
+], SyncModel.prototype, "version", void 0);
 exports.SyncModel = SyncModel;
 //# sourceMappingURL=SyncModel.js.map

@@ -3,6 +3,5 @@ export declare class SyncModel {
     createdAt?: Date;
     updatedAt?: Date;
     deletedAt?: Date;
-    updateCreatedAt(): void;
-    updateUpdatedAt(): void;
+    version?: number;
 }

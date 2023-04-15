@@ -7,6 +7,8 @@ import {LastQueryDate} from './LastQueryDate/LastQueryDate';
 import {QueryError} from './Errors/QueryError';
 import {SyncContainer} from "./Sync/SyncTypes";
 import type {SyncJsonOptions, SyncRepository} from "./Repository/SyncRepository";
+import {ServerSubscriber} from "./Subscribers/ServerSubscriber";
+import {ClientSubscriber} from "./Subscribers/ClientSubscriber";
 
 
 export type DatabaseOptions = DataSourceOptions & (
@@ -57,11 +59,11 @@ export class Database {
         return this.instancePromise;
     }
 
-    static setSyncModels(syncModels: typeof SyncModel[]){
+    static setSyncModels(syncModels: typeof SyncModel[]) {
         this.syncModels = syncModels;
     }
 
-    static getModelIdFor(model: typeof SyncModel|SyncModel) {
+    static getModelIdFor(model: typeof SyncModel | SyncModel) {
         if (!('prototype' in model)) {
             model = model.constructor as typeof SyncModel;
         }
@@ -104,7 +106,18 @@ export class Database {
         if (this.isClientDatabase() && entities.indexOf(LastQueryDate) === -1) {
             entities.push(LastQueryDate);
         }
-        this.options = {...this.options, entities};
+
+        const subscribers = this.options.subscribers ?? [];
+        if (this.isServerDatabase()) {
+            if (Array.isArray(subscribers)) {
+                subscribers.push(ServerSubscriber);
+            } else {
+                subscribers.typeorm_sync_subscriber = ServerSubscriber;
+            }
+        }
+
+        this.options = {...this.options, entities, subscribers};
+
         Database.decoratorHandlers.forEach(handler => handler());
 
         const source = new DataSource(this.options);
@@ -145,7 +158,7 @@ export class Database {
         });
     }
 
-    getConnection(){
+    getConnection() {
         return this.source;
     }
 
@@ -209,7 +222,7 @@ export class Database {
         return {success: false, error: {message: 'Database is not a client database!'}};
     }
 
-    private static getTableName(model: typeof SyncModel){
+    private static getTableName(model: typeof SyncModel) {
         let {name} = model;
         name = name.substring(0, 1).toLowerCase() + name.substring(1).replace(/([A-Z])/g, (match) => {
             return `_${match.toLowerCase()}`;
@@ -217,7 +230,7 @@ export class Database {
         return name;
     }
 
-    async clearTables(){
+    async clearTables() {
         const queryRunner = await this.source.createQueryRunner();
         const promises = (this.options.entities as typeof SyncModel[]).map(model => {
             const name = Database.getTableName(model);
@@ -247,7 +260,6 @@ export class Database {
     }
 
 
-
     setRepository<T extends typeof SyncModel>(model: T, repository: SyncRepository<T>) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
@@ -257,7 +269,7 @@ export class Database {
     getRepository<T extends typeof SyncModel>(model: T) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        return this.repositories[model] as SyncRepository<T>|undefined;
+        return this.repositories[model] as SyncRepository<T> | undefined;
     }
 
     setRepositoryPromise<T extends typeof SyncModel>(model: T, repositoryPromise: Promise<SyncRepository<T>>) {
@@ -269,6 +281,6 @@ export class Database {
     getRepositoryPromise<T extends typeof SyncModel>(model: T) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        return this.repositoryPromises[model] as Promise<SyncRepository<T>>|undefined;
+        return this.repositoryPromises[model] as Promise<SyncRepository<T>> | undefined;
     }
 }
