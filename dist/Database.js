@@ -15,6 +15,23 @@ const js_helper_1 = require("@ainias42/js-helper");
 const LastQueryDate_1 = require("./LastQueryDate/LastQueryDate");
 const ServerSubscriber_1 = require("./Subscribers/ServerSubscriber");
 class Database {
+    static isClientDatabase() {
+        var _a, _b;
+        return (_b = (_a = this.getInstance()) === null || _a === void 0 ? void 0 : _a.isClientDatabase()) !== null && _b !== void 0 ? _b : this.isClientDb;
+    }
+    static isServerDatabase() {
+        return !this.isClientDatabase();
+    }
+    static setIsClientDatabaseFallback(isClientDatabase) {
+        this.isClientDb = isClientDatabase;
+        Database.decoratorHandlers.forEach(handler => handler());
+    }
+    static callDecoratorHandlers() {
+        if (!this.decoratorHandlersCalled) {
+            Database.decoratorHandlers.forEach(handler => handler());
+            this.decoratorHandlersCalled = true;
+        }
+    }
     static addDecoratorHandler(handler) {
         this.decoratorHandlers.push(handler);
     }
@@ -96,9 +113,9 @@ class Database {
                 }
             }
             this.options = Object.assign(Object.assign({}, this.options), { entities, subscribers });
-            Database.decoratorHandlers.forEach(handler => handler());
+            Database.callDecoratorHandlers();
             const source = new typeorm_1.DataSource(this.options);
-            yield source.initialize().catch(e => console.log("Initialization Error", e));
+            yield source.initialize().catch(e => console.error("Initialization Error", e));
             if (currentTry !== this.connectionTry) {
                 yield source.destroy();
                 return;
@@ -164,7 +181,7 @@ class Database {
                     return fetch(query, Object.assign({ method: 'POST', headers: {
                             'Content-Type': 'application/json',
                         }, body: JSON.stringify({ lastQueryDate, queryOptions, extraData }) }, fetchOptions)).then((res) => res.json()).catch(e => {
-                        console.error("LOG error:", e);
+                        console.error("Error while querying server:", e);
                         return { success: false, error: e };
                     });
                 }
@@ -184,8 +201,9 @@ class Database {
         return __awaiter(this, void 0, void 0, function* () {
             const queryRunner = yield this.source.createQueryRunner();
             const promises = this.options.entities.map(model => {
-                const name = Database.getTableName(model);
-                return queryRunner.clearTable(name);
+                const modelMetadata = this.source.getMetadata(model);
+                const joinTablePromises = modelMetadata.relations.map(r => r.joinTableName).filter(name => !!name).map(name => queryRunner.clearTable(name));
+                return Promise.all([...joinTablePromises, queryRunner.clearTable(modelMetadata.tableName)]);
             });
             yield Promise.all(promises);
         });
@@ -230,4 +248,5 @@ exports.Database = Database;
 Database.instancePromise = new js_helper_1.PromiseWithHandlers();
 Database.decoratorHandlers = [];
 Database.syncModels = [];
+Database.decoratorHandlersCalled = false;
 //# sourceMappingURL=Database.js.map

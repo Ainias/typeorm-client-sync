@@ -5,7 +5,7 @@ import { Database } from '../Database';
 export function ServerBeforeInsert() {
     return function decorator(object: SyncModel, propertyName: string) {
         Database.addDecoratorHandler(() => {
-            if (Database.getInstance().isServerDatabase()) {
+            if (Database.isServerDatabase()) {
                 BeforeInsert()(object, propertyName);
             }
         });

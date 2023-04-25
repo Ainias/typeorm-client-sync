@@ -22,13 +22,14 @@
     ],
     "outDir": "./dist",
     "target": "es6",
-    "alwaysStrict": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "declaration": true,
     "module": "commonjs",
-    "allowJs": true
+    "allowJs": true,
+
+    "alwaysStrict": true,
   },
   "include": ["./src/**/*"],
   "exclude": ["node_modules"]

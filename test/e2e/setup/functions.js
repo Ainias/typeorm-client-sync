@@ -14,7 +14,6 @@ async function execTest(name) {
 async function test(name, cb) {
     it(name, async function () {
         const result = await execTest(name);
-        console.log("LOG-d result", result);
 
         expect(result.success).toEqual(true);
         expect(result.reason).toEqual(undefined);

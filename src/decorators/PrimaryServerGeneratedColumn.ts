@@ -37,7 +37,7 @@ export function PrimaryServerGeneratedColumn({
 }: PrimaryServerGeneratedColumnOptions = {}) {
     return function decorator(object: SyncModel, propertyName: string) {
         Database.addDecoratorHandler(() => {
-            if (Database.getInstance().isServerDatabase()) {
+            if (Database.isServerDatabase()) {
                 switch (strategy) {
                     case 'increment': {
                         return PrimaryGeneratedColumn(strategy, generatedOptions)(object, propertyName);

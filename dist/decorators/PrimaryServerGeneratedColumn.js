@@ -6,7 +6,7 @@ const Database_1 = require("../Database");
 function PrimaryServerGeneratedColumn({ strategy = 'increment', generatedOptions, options, type, } = {}) {
     return function decorator(object, propertyName) {
         Database_1.Database.addDecoratorHandler(() => {
-            if (Database_1.Database.getInstance().isServerDatabase()) {
+            if (Database_1.Database.isServerDatabase()) {
                 switch (strategy) {
                     case 'increment': {
                         return (0, typeorm_1.PrimaryGeneratedColumn)(strategy, generatedOptions)(object, propertyName);

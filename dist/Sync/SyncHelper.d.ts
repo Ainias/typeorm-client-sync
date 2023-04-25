@@ -10,9 +10,12 @@ export declare class SyncHelper {
     };
     static addToEntityContainer<T extends SyncModel>(entity: T, modelContainer: EntityContainer, depth?: number, idGenerator?: Generator<number>): number;
     static convertToSyncContainer(entityContainer: EntityContainer): SyncContainer;
-    static convertToModelContainer(syncContainer: SyncContainer): EntityContainer;
+    static convertToEntityContainer(syncContainer: SyncContainer): EntityContainer;
     static updateEntityContainer(entityContainer: EntityContainer, syncContainer: SyncContainer): EntityContainer;
-    static generateSyncContainer(model: SyncModel, depth?: number): SyncContainer;
+    static generateEntityContainer(entity: SyncModel, depth?: number): readonly [EntityContainer, number];
+    static generateSyncContainer(entity: SyncModel, depth?: number): SyncContainer;
+    static removeOlderEntities(syncContainer: SyncContainer, lastQueryDate: Date): void;
+    static clone<Model extends SyncModel | SyncModel[]>(entities: Model, depth?: number): Model;
     static toServerResult(entity: SyncModel, depth?: number): SingleSyncResult;
     static toServerResult(entity: SyncModel[], depth?: number): MultipleSyncResults;
     static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: SingleSyncResult): InstanceType<ModelType> | null;

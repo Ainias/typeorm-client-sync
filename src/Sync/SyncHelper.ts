@@ -5,7 +5,7 @@ import {RelationMetadataArgs} from 'typeorm/metadata-args/RelationMetadataArgs';
 import {FindOperator, FindOperatorType, FindOptionsWhere, getMetadataArgsStorage} from "typeorm";
 import {JsonOperators} from "./JsonOperators";
 import {EntityContainer, IdContainer, MultipleSyncResults, SingleSyncResult, SyncContainer} from "./SyncTypes";
-import {JSONObject} from "@ainias42/js-helper";
+import {JSONObject, ObjectHelper} from "@ainias42/js-helper";
 
 export class SyncHelper {
     static getFieldDefinitionsFor(model: typeof SyncModel) {
@@ -141,7 +141,7 @@ export class SyncHelper {
         return syncContainer;
     }
 
-    static convertToModelContainer(syncContainer: SyncContainer) {
+    static convertToEntityContainer(syncContainer: SyncContainer) {
         const entityContainer: EntityContainer = {};
 
         Object.entries(syncContainer).forEach(([entityId, modelsData]) => {
@@ -183,9 +183,9 @@ export class SyncHelper {
                     const otherModelId = Database.getModelIdFor(otherModel);
 
                     if (Array.isArray(value)) {
-                        entity[relationName] = value.map((id) => entityContainer[otherModelId][Number(id)]);
+                        entity[relationName] = value.map((id) => entityContainer[otherModelId][Number(id)] ?? {id: Number(id)});
                     } else if (value) {
-                        entity[relationName] = entityContainer[otherModelId][Number(value)];
+                        entity[relationName] = entityContainer[otherModelId][Number(value)] ?? {id: Number(value)};
                     } else {
                         entity[relationName] = value;
                     }
@@ -211,22 +211,59 @@ export class SyncHelper {
         return entityContainer;
     }
 
-    static generateSyncContainer(model: SyncModel, depth?: number) {
+    static generateEntityContainer(entity: SyncModel, depth?: number) {
         const modelContainer: EntityContainer = {};
-        SyncHelper.addToEntityContainer(model, modelContainer, depth);
+        const id = SyncHelper.addToEntityContainer(entity, modelContainer, depth);
+        return [modelContainer, id] as const;
+    }
+
+    static generateSyncContainer(entity: SyncModel, depth?: number) {
+        const [modelContainer] = SyncHelper.generateEntityContainer(entity, depth);
         return SyncHelper.convertToSyncContainer(modelContainer);
+    }
+
+    static removeOlderEntities(syncContainer: SyncContainer, lastQueryDate: Date) {
+        ObjectHelper.values(syncContainer).forEach(entityStore => {
+            ObjectHelper.entries(entityStore).forEach(([key, jsonEntity]) => {
+                if (typeof jsonEntity === "object"
+                    && "updatedAt" in jsonEntity.columns
+                    && jsonEntity.columns.updatedAt instanceof Date
+                    && jsonEntity.columns.updatedAt.getTime() < lastQueryDate.getTime()) {
+                    delete entityStore[key];
+                }
+            });
+        });
+    }
+
+    static clone<Model extends SyncModel | SyncModel[]>(entities: Model, depth?: number): Model {
+        if (!Array.isArray(entities)) {
+            return SyncHelper.clone([entities])[0] as Model;
+        }
+
+        const firstEntity = entities[0];
+        if (!firstEntity) {
+            return [] as Model;
+        }
+
+        const entityContainer: EntityContainer = {};
+        const ids = entities.map(entity => SyncHelper.addToEntityContainer(entity, entityContainer, depth));
+
+        const modelId = Database.getModelIdFor(firstEntity.constructor as typeof SyncModel);
+        const syncContainer = SyncHelper.convertToSyncContainer(entityContainer);
+        const resultContainer = SyncHelper.convertToEntityContainer(syncContainer);
+        return ids.map(id => resultContainer[modelId][id]) as Model;
     }
 
     static toServerResult(entity: SyncModel, depth?: number): SingleSyncResult
     static toServerResult(entity: SyncModel[], depth?: number): MultipleSyncResults
     static toServerResult(entity: SyncModel | SyncModel[], depth?: number) {
-        const modelContainer: EntityContainer = {};
+        const entityContainer: EntityContainer = {};
         if (Array.isArray(entity)) {
-            entity.forEach(e => SyncHelper.addToEntityContainer(e, modelContainer, depth));
+            entity.forEach(e => SyncHelper.addToEntityContainer(e, entityContainer, depth));
         } else {
-            SyncHelper.addToEntityContainer(entity, modelContainer, depth);
+            SyncHelper.addToEntityContainer(entity, entityContainer, depth);
         }
-        const syncContainer = SyncHelper.convertToSyncContainer(modelContainer);
+        const syncContainer = SyncHelper.convertToSyncContainer(entityContainer);
         if (Array.isArray(entity)) {
             const ids = entity.map(e => e.id);
             return {syncContainer, ids};
@@ -238,7 +275,7 @@ export class SyncHelper {
     static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: SingleSyncResult): InstanceType<ModelType> | null
     static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: MultipleSyncResults): InstanceType<ModelType>[]
     static fromServerResult<ModelType extends typeof SyncModel>(model: ModelType, result: SingleSyncResult | MultipleSyncResults) {
-        const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
+        const modelContainer = SyncHelper.convertToEntityContainer(result.syncContainer);
         const modelId = Database.getModelIdFor(model);
         if (!modelContainer[modelId]) {
             return ("ids" in result) ? [] : null;

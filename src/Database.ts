@@ -1,4 +1,4 @@
-import {DataSource, DataSourceOptions} from 'typeorm';
+import {DataSource, DataSourceOptions, getMetadataArgsStorage} from 'typeorm';
 import type {SyncModel} from './SyncModel';
 import {JSONValue, PromiseWithHandlers} from '@ainias42/js-helper';
 import {PersistError} from './Errors/PersistError';
@@ -28,6 +28,29 @@ export class Database {
     private static instancePromise = new PromiseWithHandlers<Database>();
     private static decoratorHandlers: (() => void)[] = [];
     private static syncModels: typeof SyncModel[] = [];
+
+    private static isClientDb: boolean | undefined;
+    private static decoratorHandlersCalled = false;
+
+    static isClientDatabase() {
+        return this.getInstance()?.isClientDatabase() ?? this.isClientDb;
+    }
+
+    static isServerDatabase() {
+        return !this.isClientDatabase();
+    }
+
+    static setIsClientDatabaseFallback(isClientDatabase: boolean) {
+        this.isClientDb = isClientDatabase;
+        Database.decoratorHandlers.forEach(handler => handler());
+    }
+
+    private static callDecoratorHandlers() {
+        if (!this.decoratorHandlersCalled) {
+            Database.decoratorHandlers.forEach(handler => handler());
+            this.decoratorHandlersCalled = true;
+        }
+    }
 
     static addDecoratorHandler(handler: () => void) {
         this.decoratorHandlers.push(handler);
@@ -117,10 +140,10 @@ export class Database {
 
         this.options = {...this.options, entities, subscribers};
 
-        Database.decoratorHandlers.forEach(handler => handler());
+        Database.callDecoratorHandlers();
 
         const source = new DataSource(this.options);
-        await source.initialize().catch(e => console.log("Initialization Error", e));
+        await source.initialize().catch(e => console.error("Initialization Error", e));
         if (currentTry !== this.connectionTry) {
             await source.destroy();
             return;
@@ -212,7 +235,7 @@ export class Database {
                     body: JSON.stringify({lastQueryDate, queryOptions, extraData}),
                     ...fetchOptions,
                 }).then((res) => res.json()).catch(e => {
-                    console.error("LOG error:", e);
+                    console.error("Error while querying server:", e);
                     return {success: false, error: e};
                 });
             }
@@ -231,9 +254,11 @@ export class Database {
 
     async clearTables() {
         const queryRunner = await this.source.createQueryRunner();
+
         const promises = (this.options.entities as typeof SyncModel[]).map(model => {
-            const name = Database.getTableName(model);
-            return queryRunner.clearTable(name);
+            const modelMetadata = this.source.getMetadata(model);
+            const joinTablePromises = modelMetadata.relations.map(r => r.joinTableName).filter(name => !!name).map(name => queryRunner.clearTable(name));
+            return Promise.all([...joinTablePromises, queryRunner.clearTable(modelMetadata.tableName)]);
         });
         await Promise.all(promises);
     }

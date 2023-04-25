@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { PrimaryServerGeneratedColumn } from './decorators/PrimaryServerGeneratedColumn';
 import {ServerVersionColumn} from "./decorators/ServerVersionColumn";
+import {ServerBeforeUpdate} from "./decorators/ServerBeforeUpdate";
 
 export class SyncModel {
 

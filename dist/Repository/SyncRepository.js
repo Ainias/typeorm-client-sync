@@ -47,10 +47,10 @@ function waitForSyncRepository(model) {
 }
 exports.waitForSyncRepository = waitForSyncRepository;
 function createSyncRepositoryExtension(model, repository, db) {
-    const originalSync = repository.save.bind(repository);
+    const originalSave = repository.save.bind(repository);
     const save = (...[entity, options, useClientOnlySave]) => __awaiter(this, void 0, void 0, function* () {
         if (useClientOnlySave || db.isServerDatabase()) {
-            return originalSync(entity, options);
+            return originalSave(entity, options);
         }
         throw new Error("Client-Only-Save used without useClientOnlySave-Flag!");
     });
@@ -77,7 +77,7 @@ function createSyncRepositoryExtension(model, repository, db) {
                     throw new Error((_a = result.error.message) !== null && _a !== void 0 ? _a : result.error.toString());
                 }
             }
-            yield save(entity, options, true);
+            return save(entity, options, true);
         });
     }
     function getRelevantSyncOptions(options) {
@@ -118,10 +118,10 @@ function createSyncRepositoryExtension(model, repository, db) {
                 if (result.deleted.length > 0) {
                     yield repository.remove(result.deleted.map(id => ({ id })));
                 }
-                const modelContainer = SyncHelper_1.SyncHelper.convertToModelContainer(result.syncContainer);
+                const entityContainer = SyncHelper_1.SyncHelper.convertToEntityContainer(result.syncContainer);
                 // // TODO asynchronous saving of entities
                 let savePromise = Promise.resolve(undefined);
-                Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
+                Object.entries(entityContainer).forEach(([queriedModelId, entityMap]) => {
                     const syncedModel = Database_1.Database.getModelForId(Number(queriedModelId));
                     savePromise = savePromise.then(() => {
                         return waitForSyncRepository(syncedModel).then(modelRepository => {
@@ -193,6 +193,7 @@ function createSyncRepositoryExtension(model, repository, db) {
         });
     }
     function saveInitialResult(initialResult) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             if (db.isServerDatabase()) {
                 throw new Error("saveInitialResult should only be called on client!");
@@ -204,7 +205,10 @@ function createSyncRepositoryExtension(model, repository, db) {
                 initialResult = initialResult.toJSON();
             }
             const [lastQueryDate] = yield prepareSync(initialResult.query);
-            const { syncContainer } = "entities" in initialResult ? initialResult.entities : initialResult.entity;
+            const { syncContainer } = (_a = ("entities" in initialResult ? initialResult.entities : initialResult.entity)) !== null && _a !== void 0 ? _a : {};
+            if (!syncContainer) {
+                return;
+            }
             const modelId = Database_1.Database.getModelIdFor(model);
             const deletedEntities = yield repository.find(Object.assign(Object.assign({}, initialResult.query), { select: ["id"] }));
             const deleted = deletedEntities.map((m) => m.id).filter(id => !syncContainer[modelId][id]);
@@ -243,12 +247,12 @@ function createSyncRepositoryExtension(model, repository, db) {
             return __awaiter(this, void 0, void 0, function* () {
                 const clientPromise = new js_helper_1.PromiseWithHandlers();
                 const serverPromise = new js_helper_1.PromiseWithHandlers();
-                const syncOptions = Object.assign({ callback: (posts, isServerData) => {
+                const syncOptions = Object.assign({ callback: (entities, isServerData) => {
                         if (isServerData) {
-                            serverPromise.resolve(posts);
+                            serverPromise.resolve(entities);
                         }
                         else {
-                            clientPromise.resolve(posts);
+                            clientPromise.resolve(entities);
                         }
                     }, errorCallback: ((e, isServer) => {
                         if (isServer) {

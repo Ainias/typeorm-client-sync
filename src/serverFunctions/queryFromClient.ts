@@ -1,30 +1,35 @@
 import {FindManyOptions, FindOneOptions, IsNull, MoreThan, Not} from 'typeorm';
 import {Database} from '../Database';
 import {SyncHelper} from '../Sync/SyncHelper';
-import {JsonHelper} from '@ainias42/js-helper';
+import {DateHelper, JsonHelper} from '@ainias42/js-helper';
 import {SyncJsonOptions, waitForSyncRepository} from "../Repository/SyncRepository";
 
 export async function queryFromClient(
-    lastQueryDate: Date | undefined,
+    lastQueryDate: Date | string | undefined,
     queryOptions: SyncJsonOptions,
     syncOne = false
 ) {
-    console.log("LOG-d queryOptions", queryOptions);
 
     const {modelId} = queryOptions;
     const deleteOptions = JsonHelper.deepCopy(queryOptions);
     queryOptions.where = SyncHelper.convertJsonToWhere(queryOptions.where ?? {});
     deleteOptions.where = SyncHelper.convertJsonToWhere(deleteOptions.where ?? {});
 
-    if (lastQueryDate) {
+    if (typeof lastQueryDate === "string"){
+        lastQueryDate = new Date(lastQueryDate);
+    }
+
+    const lastQueryString = lastQueryDate ?  DateHelper.strftime("%Y-%m-%d %H:%M:%S", lastQueryDate) : undefined;
+
+    if (lastQueryDate && !("relations" in queryOptions)) {
         if (Array.isArray(queryOptions.where)) {
-            queryOptions.where.forEach((orCondition) => (orCondition.updatedAt = MoreThan(lastQueryDate)));
+            queryOptions.where.forEach((orCondition) => (orCondition.updatedAt = MoreThan(lastQueryString)));
         } else {
-            queryOptions.where.updatedAt = MoreThan(lastQueryDate);
+            queryOptions.where.updatedAt = MoreThan(lastQueryString);
         }
     }
 
-    const compareOperator = lastQueryDate ? MoreThan(lastQueryDate) : Not(IsNull());
+    const compareOperator = lastQueryString ? MoreThan(lastQueryString) : Not(IsNull());
     if (Array.isArray(deleteOptions.where)) {
         deleteOptions.where.forEach((orCondition) => (orCondition.deletedAt = compareOperator));
     } else {
@@ -44,6 +49,10 @@ export async function queryFromClient(
     const entities = await entityPromise;
     const deleted = (await deletedPromise).map((m) => m.id);
     const {syncContainer} = SyncHelper.toServerResult(entities);
+
+    if (lastQueryDate && ("relations" in queryOptions)){
+        SyncHelper.removeOlderEntities(syncContainer, lastQueryDate);
+    }
 
     return {
         lastQueryDate: newLastQueryDate,

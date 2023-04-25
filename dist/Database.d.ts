@@ -20,6 +20,12 @@ export declare class Database {
     private static instancePromise;
     private static decoratorHandlers;
     private static syncModels;
+    private static isClientDb;
+    private static decoratorHandlersCalled;
+    static isClientDatabase(): boolean;
+    static isServerDatabase(): boolean;
+    static setIsClientDatabaseFallback(isClientDatabase: boolean): void;
+    private static callDecoratorHandlers;
     static addDecoratorHandler(handler: () => void): void;
     static init(options: DatabaseOptions): Promise<Database>;
     static destroy(): Promise<void>;

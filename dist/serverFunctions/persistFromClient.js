@@ -15,10 +15,12 @@ const SyncRepository_1 = require("../Repository/SyncRepository");
 function persistFromClient(modelId, entityId, syncContainer) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const entityContainer = SyncHelper_1.SyncHelper.convertToModelContainer(syncContainer);
+            const entityContainer = SyncHelper_1.SyncHelper.convertToEntityContainer(syncContainer);
             const entity = entityContainer[modelId][entityId];
             const repository = yield (0, SyncRepository_1.waitForSyncRepository)(entity.constructor);
-            yield repository.save(entity, { reload: true });
+            yield repository.manager.transaction((entityManager) => __awaiter(this, void 0, void 0, function* () {
+                yield entityManager.save(entity, { reload: true });
+            }));
             return SyncHelper_1.SyncHelper.convertToSyncContainer(entityContainer);
         }
         catch (e) {

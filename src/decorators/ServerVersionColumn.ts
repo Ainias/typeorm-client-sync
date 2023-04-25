@@ -5,7 +5,7 @@ import { Database } from '../Database';
 export function ServerVersionColumn() {
     return function decorator(object: SyncModel, propertyName: string) {
         Database.addDecoratorHandler(() => {
-            if (Database.getInstance().isServerDatabase()) {
+            if (Database.isServerDatabase()) {
                 VersionColumn()(object, propertyName);
             }
             else {

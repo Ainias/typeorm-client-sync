@@ -8,6 +8,7 @@ let moduleExports = {
     //Development oder production, wird oben durch Variable angegeben (damit später per IF überprüft)
     mode,
 
+    devtool: "eval-source-map",
     entry: [
         __dirname + "/client/index.ts",
     ],

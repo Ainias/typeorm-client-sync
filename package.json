@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "eslint": "eslint 'src/**/*.ts'",
-    "build": "node bin/build.js & tsc",
+    "build": "node bin/build.js && tsc",
+    "build:test": "npm run build && cd test/e2e/setup && npm run build",
+    "start:test": "npm run build:test && cd test/e2e/setup && npm run start",
     "update packages": "node bin/updateCopies.js",
     "test": "wdio test/e2e/wdio.config.browser.js"
   },
@@ -23,9 +25,9 @@
   },
   "homepage": "https://github.com/Ainias/typeorm-client-sync#readme",
   "peerDependencies": {
-    "@ainias42/js-helper": ">=0.8.2",
+    "@ainias42/js-helper": ">=0.8.4",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.3.12"
+    "typeorm": "^0.3.15"
   },
   "devDependencies": {
     "typescript": "^4.6.3",

@@ -18,20 +18,23 @@ const SyncRepository_1 = require("../Repository/SyncRepository");
 function queryFromClient(lastQueryDate, queryOptions, syncOne = false) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        console.log("LOG-d queryOptions", queryOptions);
         const { modelId } = queryOptions;
         const deleteOptions = js_helper_1.JsonHelper.deepCopy(queryOptions);
         queryOptions.where = SyncHelper_1.SyncHelper.convertJsonToWhere((_a = queryOptions.where) !== null && _a !== void 0 ? _a : {});
         deleteOptions.where = SyncHelper_1.SyncHelper.convertJsonToWhere((_b = deleteOptions.where) !== null && _b !== void 0 ? _b : {});
-        if (lastQueryDate) {
+        if (typeof lastQueryDate === "string") {
+            lastQueryDate = new Date(lastQueryDate);
+        }
+        const lastQueryString = lastQueryDate ? js_helper_1.DateHelper.strftime("%Y-%m-%d %H:%M:%S", lastQueryDate) : undefined;
+        if (lastQueryDate && !("relations" in queryOptions)) {
             if (Array.isArray(queryOptions.where)) {
-                queryOptions.where.forEach((orCondition) => (orCondition.updatedAt = (0, typeorm_1.MoreThan)(lastQueryDate)));
+                queryOptions.where.forEach((orCondition) => (orCondition.updatedAt = (0, typeorm_1.MoreThan)(lastQueryString)));
             }
             else {
-                queryOptions.where.updatedAt = (0, typeorm_1.MoreThan)(lastQueryDate);
+                queryOptions.where.updatedAt = (0, typeorm_1.MoreThan)(lastQueryString);
             }
         }
-        const compareOperator = lastQueryDate ? (0, typeorm_1.MoreThan)(lastQueryDate) : (0, typeorm_1.Not)((0, typeorm_1.IsNull)());
+        const compareOperator = lastQueryString ? (0, typeorm_1.MoreThan)(lastQueryString) : (0, typeorm_1.Not)((0, typeorm_1.IsNull)());
         if (Array.isArray(deleteOptions.where)) {
             deleteOptions.where.forEach((orCondition) => (orCondition.deletedAt = compareOperator));
         }
@@ -48,6 +51,9 @@ function queryFromClient(lastQueryDate, queryOptions, syncOne = false) {
         const entities = yield entityPromise;
         const deleted = (yield deletedPromise).map((m) => m.id);
         const { syncContainer } = SyncHelper_1.SyncHelper.toServerResult(entities);
+        if (lastQueryDate && ("relations" in queryOptions)) {
+            SyncHelper_1.SyncHelper.removeOlderEntities(syncContainer, lastQueryDate);
+        }
         return {
             lastQueryDate: newLastQueryDate,
             deleted,

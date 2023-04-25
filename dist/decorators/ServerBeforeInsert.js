@@ -6,7 +6,7 @@ const Database_1 = require("../Database");
 function ServerBeforeInsert() {
     return function decorator(object, propertyName) {
         Database_1.Database.addDecoratorHandler(() => {
-            if (Database_1.Database.getInstance().isServerDatabase()) {
+            if (Database_1.Database.isServerDatabase()) {
                 (0, typeorm_1.BeforeInsert)()(object, propertyName);
             }
         });

@@ -6,7 +6,7 @@ import type {SimpleColumnType} from "typeorm/driver/types/ColumnTypes";
 export function ServerClientColumn(serverOptions: ColumnOptions | SimpleColumnType, clientOptions: ColumnOptions | SimpleColumnType, baseOptions: ColumnOptions = {}) {
     return function decorator(object: SyncModel, propertyName: string) {
         Database.addDecoratorHandler(() => {
-            const overrideOptions = Database.getInstance().isServerDatabase() ? serverOptions : clientOptions;
+            const overrideOptions = Database.isServerDatabase() ? serverOptions : clientOptions;
             const mergedOptions = {...baseOptions, ...(typeof overrideOptions === "string" ? {type: overrideOptions} : overrideOptions)};
             Column(mergedOptions)(object, propertyName);
         });

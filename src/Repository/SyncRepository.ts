@@ -65,10 +65,10 @@ export async function waitForSyncRepository<T extends typeof SyncModel>(model: T
 }
 
 export function createSyncRepositoryExtension<Model extends typeof SyncModel>(model: Model, repository: Repository<InstanceType<Model>>, db: Database) {
-    const originalSync: typeof repository.save = repository.save.bind(repository);
+    const originalSave: typeof repository.save = repository.save.bind(repository);
     const save = async (...[entity, options, useClientOnlySave]: [...Parameters<typeof repository.save>, boolean?]) => {
         if (useClientOnlySave || db.isServerDatabase()) {
-            return originalSync(entity, options);
+            return originalSave(entity, options);
         }
         throw new Error("Client-Only-Save used without useClientOnlySave-Flag!");
     };
@@ -83,7 +83,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
 
     async function saveAndSync(entities: InstanceType<Model>[], options?: SyncOptions<SaveOptions> & { reload: false, clientOnly: true })
     async function saveAndSync(entity: InstanceType<Model>, options?: SyncOptions<SaveOptions> & { reload: false })
-    async function saveAndSync(entity: InstanceType<Model> | InstanceType<Model>[], options?: SyncOptions<SaveOptions> & { reload: false }) {
+    async function saveAndSync<Type extends InstanceType<Model> | InstanceType<Model>[]>(entity: Type, options?: SyncOptions<SaveOptions> & { reload: false }): Promise<Type> {
         if (db.isClientDatabase() && options?.runOnServer !== false && !Array.isArray(entity)) {
             const modelContainer: EntityContainer = {};
             SyncHelper.addToEntityContainer(entity, modelContainer);
@@ -97,7 +97,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
                 throw new Error(result.error.message ?? result.error.toString());
             }
         }
-        await save(entity as DeepPartial<InstanceType<Model>>, options, true);
+        return save(entity as DeepPartial<InstanceType<Model>>, options, true) as Promise<Type>;
     }
 
     function getRelevantSyncOptions(options?: FindManyOptions<InstanceType<Model>>){
@@ -141,11 +141,11 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             if (result.deleted.length > 0) {
                 await repository.remove(result.deleted.map(id => ({id} as InstanceType<Model>)));
             }
-            const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
+            const entityContainer = SyncHelper.convertToEntityContainer(result.syncContainer);
 
             // // TODO asynchronous saving of entities
             let savePromise = Promise.resolve(undefined);
-            Object.entries(modelContainer).forEach(([queriedModelId, entityMap]) => {
+            Object.entries(entityContainer).forEach(([queriedModelId, entityMap]) => {
                 const syncedModel = Database.getModelForId(Number(queriedModelId));
                 savePromise = savePromise.then(() => {
                     return waitForSyncRepository(syncedModel).then(modelRepository => {
@@ -181,6 +181,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             return;
         }
         const [lastQueryDate, relevantSyncOptions] = await prepareSync(options);
+
         const result = await db.queryServer(
             lastQueryDate.lastQueried,
             relevantSyncOptions,
@@ -235,7 +236,10 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             initialResult = initialResult.toJSON();
         }
         const [lastQueryDate] = await prepareSync(initialResult.query);
-        const {syncContainer} = "entities" in initialResult ? initialResult.entities : initialResult.entity;
+        const {syncContainer} = ("entities" in initialResult ? initialResult.entities : initialResult.entity) ?? {};
+        if (!syncContainer){
+            return;
+        }
 
         const modelId = Database.getModelIdFor(model);
 
@@ -276,14 +280,14 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             const clientPromise = new PromiseWithHandlers<InstanceType<Model>[]>();
             const serverPromise = new PromiseWithHandlers<InstanceType<Model>[]>();
             const syncOptions = {
-                callback: (posts, isServerData) => {
+                callback: (entities: InstanceType<Model>[], isServerData: boolean) => {
                     if (isServerData) {
-                        serverPromise.resolve(posts);
+                        serverPromise.resolve(entities);
                     } else {
-                        clientPromise.resolve(posts);
+                        clientPromise.resolve(entities);
                     }
                 },
-                errorCallback: ((e, isServer) => {
+                errorCallback: ((e: any, isServer: boolean) => {
                     if (isServer) {
                         serverPromise.reject(e);
                     } else {
