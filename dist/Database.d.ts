@@ -62,13 +62,13 @@ export declare class Database {
             } & {
                 reload: false;
                 clientOnly: true;
-            }): any;
+            }): Promise<InstanceType<T>[]>;
             (entity: InstanceType<T>, options?: import("typeorm").SaveOptions & {
                 runOnServer?: boolean;
                 extraData?: JSONValue;
             } & {
                 reload: false;
-            }): any;
+            }): Promise<InstanceType<T>>;
         };
         save: (__0_0: import("typeorm").DeepPartial<InstanceType<T>>, __0_1?: import("typeorm").SaveOptions, __0_2?: boolean) => Promise<import("typeorm").DeepPartial<InstanceType<T>> & InstanceType<T>>;
         remove: (__0_0: InstanceType<T>, __0_1?: import("typeorm").RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
@@ -109,13 +109,13 @@ export declare class Database {
             } & {
                 reload: false;
                 clientOnly: true;
-            }): any;
+            }): Promise<InstanceType<T>[]>;
             (entity: InstanceType<T>, options?: import("typeorm").SaveOptions & {
                 runOnServer?: boolean;
                 extraData?: JSONValue;
             } & {
                 reload: false;
-            }): any;
+            }): Promise<InstanceType<T>>;
         };
         save: (__0_0: import("typeorm").DeepPartial<InstanceType<T>>, __0_1?: import("typeorm").SaveOptions, __0_2?: boolean) => Promise<import("typeorm").DeepPartial<InstanceType<T>> & InstanceType<T>>;
         remove: (__0_0: InstanceType<T>, __0_1?: import("typeorm").RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
