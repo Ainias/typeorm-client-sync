@@ -24,13 +24,13 @@ export declare function getSyncRepository<T extends typeof SyncModel>(model: T):
         } & {
             reload: false;
             clientOnly: true;
-        }): any;
+        }): Promise<InstanceType<T>[]>;
         (entity: InstanceType<T>, options?: SaveOptions & {
             runOnServer?: boolean;
             extraData?: JSONValue;
         } & {
             reload: false;
-        }): any;
+        }): Promise<InstanceType<T>>;
     };
     save: (__0_0: DeepPartial<InstanceType<T>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<T>> & InstanceType<T>>;
     remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
@@ -70,13 +70,13 @@ export declare function waitForSyncRepository<T extends typeof SyncModel>(model:
         } & {
             reload: false;
             clientOnly: true;
-        }): any;
+        }): Promise<InstanceType<T>[]>;
         (entity: InstanceType<T>, options?: SaveOptions & {
             runOnServer?: boolean;
             extraData?: JSONValue;
         } & {
             reload: false;
-        }): any;
+        }): Promise<InstanceType<T>>;
     };
     save: (__0_0: DeepPartial<InstanceType<T>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<T>> & InstanceType<T>>;
     remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
@@ -113,10 +113,10 @@ export declare function createSyncRepositoryExtension<Model extends typeof SyncM
         (entities: InstanceType<Model>[], options?: SyncOptions<SaveOptions> & {
             reload: false;
             clientOnly: true;
-        }): any;
+        }): Promise<InstanceType<Model>[]>;
         (entity: InstanceType<Model>, options?: SyncOptions<SaveOptions> & {
             reload: false;
-        }): any;
+        }): Promise<InstanceType<Model>>;
     };
     save: (__0_0: DeepPartial<InstanceType<Model>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<Model>> & InstanceType<Model>>;
     remove: (__0_0: InstanceType<Model>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<Model>>;
@@ -143,13 +143,13 @@ declare class TypeWrapper<T extends typeof SyncModel> {
             } & {
                 reload: false;
                 clientOnly: true;
-            }): any;
+            }): Promise<InstanceType<T>[]>;
             (entity: InstanceType<T>, options?: SaveOptions & {
                 runOnServer?: boolean;
                 extraData?: JSONValue;
             } & {
                 reload: false;
-            }): any;
+            }): Promise<InstanceType<T>>;
         };
         save: (__0_0: DeepPartial<InstanceType<T>>, __0_1?: SaveOptions, __0_2?: boolean) => Promise<DeepPartial<InstanceType<T>> & InstanceType<T>>;
         remove: (__0_0: InstanceType<T>, __0_1?: RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;

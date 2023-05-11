@@ -81,8 +81,8 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         throw new Error("Client-Only-Remove used without useClientOnlyRemove-Flag!");
     };
 
-    async function saveAndSync(entities: InstanceType<Model>[], options?: SyncOptions<SaveOptions> & { reload: false, clientOnly: true })
-    async function saveAndSync(entity: InstanceType<Model>, options?: SyncOptions<SaveOptions> & { reload: false })
+    async function saveAndSync(entities: InstanceType<Model>[], options?: SyncOptions<SaveOptions> & { reload: false, clientOnly: true }): Promise<InstanceType<Model>[]>
+    async function saveAndSync(entity: InstanceType<Model>, options?: SyncOptions<SaveOptions> & { reload: false }): Promise<InstanceType<Model>>
     async function saveAndSync<Type extends InstanceType<Model> | InstanceType<Model>[]>(entity: Type, options?: SyncOptions<SaveOptions> & { reload: false }): Promise<Type> {
         if (db.isClientDatabase() && options?.runOnServer !== false && !Array.isArray(entity)) {
             const modelContainer: EntityContainer = {};
