@@ -12,11 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.removeOnServer = void 0;
 const Database_1 = require("../Database");
 const SyncRepository_1 = require("../Repository/SyncRepository");
-function removeOnServer(modelId, entityId) {
+function removeOnServer(modelId, entityIds) {
     return __awaiter(this, void 0, void 0, function* () {
-        const entity = Database_1.Database.getModelForId(modelId);
-        const repository = yield (0, SyncRepository_1.waitForSyncRepository)(entity);
-        yield repository.softDelete(entityId);
+        const model = Database_1.Database.getModelForId(modelId);
+        const repository = yield (0, SyncRepository_1.waitForSyncRepository)(model);
+        yield repository.softDelete(entityIds);
         return true;
     });
 }

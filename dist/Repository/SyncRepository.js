@@ -221,23 +221,27 @@ function createSyncRepositoryExtension(model, repository, db) {
             yield handleSyncResult(result, lastQueryDate);
         });
     }
+    function removeAndSync(entity, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (Array.isArray(entity) && entity.length === 0) {
+                return [];
+            }
+            if (db.isClientDatabase() && (options === null || options === void 0 ? void 0 : options.runOnServer) !== false) {
+                const modelId = Database_1.Database.getModelIdFor(model);
+                const result = yield db.removeFromServer(modelId, Array.isArray(entity) ? entity.map(e => e.id) : entity.id, options === null || options === void 0 ? void 0 : options.extraData);
+                if (result.success === false) {
+                    throw new Error(result.error.message);
+                }
+            }
+            return remove(entity, options, true);
+        });
+    }
     return {
         saveAndSync,
         save,
         remove,
         saveInitialResult,
-        removeAndSync(entity, options) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (db.isClientDatabase() && (options === null || options === void 0 ? void 0 : options.runOnServer) !== false) {
-                    const modelId = Database_1.Database.getModelIdFor(model);
-                    const result = yield db.removeFromServer(modelId, entity.id, options === null || options === void 0 ? void 0 : options.extraData);
-                    if (result.success === false) {
-                        throw new Error(result.error.message);
-                    }
-                }
-                return remove(entity, options, true);
-            });
-        },
+        removeAndSync,
         findAndSync(options) {
             return __awaiter(this, void 0, void 0, function* () {
                 yield executeWithSyncAndCallbacks(repository.find, [options], options);

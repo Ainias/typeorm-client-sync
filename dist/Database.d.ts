@@ -52,7 +52,7 @@ export declare class Database {
     queryServer(lastQueryDate: Date | undefined, queryOptions: SyncJsonOptions, extraData?: JSONValue): Promise<SyncResult<QueryError>>;
     private static getTableName;
     clearTables(): Promise<void>;
-    removeFromServer(modelId: number, entityId: number, extraData?: JSONValue): any;
+    removeFromServer(modelId: number, entityId: number | number[], extraData?: JSONValue): any;
     setRepository<T extends typeof SyncModel>(model: T, repository: SyncRepository<T>): void;
     getRepository<T extends typeof SyncModel>(model: T): import("typeorm").Repository<InstanceType<T>> & {
         saveAndSync: {
@@ -62,13 +62,13 @@ export declare class Database {
             } & {
                 reload: false;
                 clientOnly: true;
-            }): any;
+            }): Promise<InstanceType<T>[]>;
             (entity: InstanceType<T>, options?: import("typeorm").SaveOptions & {
                 runOnServer?: boolean;
                 extraData?: JSONValue;
             } & {
                 reload: false;
-            }): any;
+            }): Promise<InstanceType<T>>;
         };
         save: (__0_0: import("typeorm").DeepPartial<InstanceType<T>>, __0_1?: import("typeorm").SaveOptions, __0_2?: boolean) => Promise<import("typeorm").DeepPartial<InstanceType<T>> & InstanceType<T>>;
         remove: (__0_0: InstanceType<T>, __0_1?: import("typeorm").RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
@@ -90,7 +90,10 @@ export declare class Database {
                 query: import("typeorm").FindManyOptions<InstanceType<T>>;
             }): any;
         };
-        removeAndSync(entity: InstanceType<T>, options?: import("./Repository/SyncRepository").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>>;
+        removeAndSync: {
+            (entity: InstanceType<T>, options?: import("./Repository/SyncRepository").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>>;
+            (entity: InstanceType<T>[], options?: import("./Repository/SyncRepository").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>[]>;
+        };
         findAndSync(options: import("./Repository/SyncRepository").SyncWithCallbackOptions<import("typeorm").FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
         promiseFindAndSync(options?: import("typeorm").FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
         findOneAndSync(options: import("./Repository/SyncRepository").SyncWithCallbackOptions<import("typeorm").FindOneOptions<InstanceType<T>>, InstanceType<T>>): Promise<void>;
@@ -109,13 +112,13 @@ export declare class Database {
             } & {
                 reload: false;
                 clientOnly: true;
-            }): any;
+            }): Promise<InstanceType<T>[]>;
             (entity: InstanceType<T>, options?: import("typeorm").SaveOptions & {
                 runOnServer?: boolean;
                 extraData?: JSONValue;
             } & {
                 reload: false;
-            }): any;
+            }): Promise<InstanceType<T>>;
         };
         save: (__0_0: import("typeorm").DeepPartial<InstanceType<T>>, __0_1?: import("typeorm").SaveOptions, __0_2?: boolean) => Promise<import("typeorm").DeepPartial<InstanceType<T>> & InstanceType<T>>;
         remove: (__0_0: InstanceType<T>, __0_1?: import("typeorm").RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
@@ -137,7 +140,10 @@ export declare class Database {
                 query: import("typeorm").FindManyOptions<InstanceType<T>>;
             }): any;
         };
-        removeAndSync(entity: InstanceType<T>, options?: import("./Repository/SyncRepository").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>>;
+        removeAndSync: {
+            (entity: InstanceType<T>, options?: import("./Repository/SyncRepository").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>>;
+            (entity: InstanceType<T>[], options?: import("./Repository/SyncRepository").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>[]>;
+        };
         findAndSync(options: import("./Repository/SyncRepository").SyncWithCallbackOptions<import("typeorm").FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
         promiseFindAndSync(options?: import("typeorm").FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
         findOneAndSync(options: import("./Repository/SyncRepository").SyncWithCallbackOptions<import("typeorm").FindOneOptions<InstanceType<T>>, InstanceType<T>>): Promise<void>;

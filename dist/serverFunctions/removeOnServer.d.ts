@@ -1,1 +1,1 @@
-export declare function removeOnServer(modelId: number, entityId: number): Promise<boolean>;
+export declare function removeOnServer(modelId: number, entityIds: number | number[]): Promise<boolean>;

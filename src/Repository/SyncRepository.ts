@@ -255,22 +255,30 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         await handleSyncResult(result, lastQueryDate);
     }
 
+    async function removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model>>
+    async function removeAndSync(entity: InstanceType<Model>[], options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model>[]>
+    async function removeAndSync(entity: InstanceType<Model>|InstanceType<Model>[], options?: SyncOptions<RemoveOptions>) : Promise<InstanceType<Model>|InstanceType<Model>[]>{
+        if (Array.isArray(entity) && entity.length === 0){
+            return [];
+        }
+
+        if (db.isClientDatabase() && options?.runOnServer !== false) {
+            const modelId = Database.getModelIdFor(model);
+            const result = await db.removeFromServer(modelId, Array.isArray(entity) ? entity.map(e => e.id) : entity.id, options?.extraData);
+            if (result.success === false) {
+                throw new Error(result.error.message);
+            }
+        }
+        return remove(entity as InstanceType<Model>, options, true);
+    }
+
     return {
         saveAndSync,
         save,
         remove,
         saveInitialResult,
+        removeAndSync,
 
-        async removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>) {
-            if (db.isClientDatabase() && options?.runOnServer !== false) {
-                const modelId = Database.getModelIdFor(model);
-                const result = await db.removeFromServer(modelId, entity.id, options?.extraData);
-                if (result.success === false) {
-                    throw new Error(result.error.message);
-                }
-            }
-            return remove(entity, options, true);
-        },
 
         async findAndSync(options: SyncWithCallbackOptions<FindManyOptions<InstanceType<Model>>, InstanceType<Model>[]>) {
             await executeWithSyncAndCallbacks(repository.find, [options], options);

@@ -13,7 +13,7 @@ export class TestcaseRunner {
 
     constructor() {
         window.onerror = (e) => {
-            console.log("LOG-d got error in window error listener", e);
+            console.log("Got error in window error listener", e);
         };
     }
 

@@ -263,7 +263,7 @@ export class Database {
         await Promise.all(promises);
     }
 
-    async removeFromServer(modelId: number, entityId: number, extraData?: JSONValue) {
+    async removeFromServer(modelId: number, entityId: number|number[], extraData?: JSONValue) {
         const {isClient} = this.options;
 
         if (isClient) {
