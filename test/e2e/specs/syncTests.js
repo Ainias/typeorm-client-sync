@@ -4,4 +4,5 @@ describe("clean sync tests", () => {
     test("CleanSyncTest")
     test("OverwriteTest")
     test("RelationSyncTest")
+    test("SaveRelationTest")
 });

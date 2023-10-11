@@ -9,7 +9,8 @@
     "build:test": "npm run build && cd test/e2e/setup && npm run build",
     "start:test": "npm run build:test && cd test/e2e/setup && npm run start",
     "update packages": "node bin/updateCopies.js",
-    "test": "wdio test/e2e/wdio.config.browser.js"
+    "test": "wdio test/e2e/wdio.config.browser.js",
+    "test:generate-db": "node test/e2e/setup/setupDb.js"
   },
   "repository": {
     "type": "git",
@@ -27,7 +28,7 @@
   "peerDependencies": {
     "@ainias42/js-helper": ">=0.8.4",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.3.15"
+    "typeorm": "^0.3.17"
   },
   "devDependencies": {
     "typescript": "^4.6.3",
@@ -48,10 +49,11 @@
     "@wdio/spec-reporter": "^7.19.7",
     "appium": "^1.22.3",
     "appium-doctor": "^1.16.0",
-    "chromedriver": "^97.0.4",
+    "chromedriver": "^117.0.3",
     "wd": "^1.14.0",
     "wdio-chromedriver-service": "^7.3.2",
     "webdriverio": "^7.19.7",
-    "mysql2": "^2.3.3"
+    "mysql2": "^2.3.3",
+    "typeorm": "git+https://github.com/Ainias/typeorm.git#deployment3"
   }
 }

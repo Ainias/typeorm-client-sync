@@ -33,6 +33,7 @@ __exportStar(require("./decorators/ServerBeforeInsert"), exports);
 __exportStar(require("./decorators/ServerBeforeUpdate"), exports);
 __exportStar(require("./decorators/ServerClientColumn"), exports);
 __exportStar(require("./decorators/ServerVersionColumn"), exports);
+__exportStar(require("./index"), exports);
 __exportStar(require("./serverFunctions/persistFromClient"), exports);
 __exportStar(require("./serverFunctions/queryFromClient"), exports);
 __exportStar(require("./serverFunctions/removeOnServer"), exports);

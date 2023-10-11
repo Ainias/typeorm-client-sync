@@ -17,9 +17,9 @@ const databaseOptions: DatabaseOptions = {
     host: 'localhost',
     port: 3306,
     username: process.env.DB_USER ?? "root",
-    password: process.env.DB_PASSWORD ?? "123456",
+    password: process.env.DB_PASSWORD ?? "churchtoolsRocks",
     database: process.env.DB_DB ?? "typeormSync",
-    synchronize: true,
+    synchronize: false,
 
     logging: ['error', 'warn'],
     // "logging": true

@@ -3,7 +3,7 @@ const childProcess = require("child_process");
 const fs = require("fs");
 
 let db = "typeormSync";
-let pw = "123456";
+let pw = "churchtoolsRocks";
 let mysqlConn = mysql.createConnection({
     host: "localhost",
     "user": "root",

@@ -24,7 +24,7 @@ const databaseOptions: DatabaseOptions = {
     synchronize: true,
     logging: false,
     isClient: true,
-    persist: "/api/db/persist",
+    persist: "/api/persist",
     query: '/api/sync',
     remove: '/api/db/remove',
 };

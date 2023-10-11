@@ -65,6 +65,7 @@ let ServerSubscriber = class ServerSubscriber {
     }
     afterInsert({ entity, metadata, queryRunner }) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log("LOG-d afterInsert", entity, metadata.isJunction, metadata.tableType, metadata.tableName);
             if (metadata.isJunction && metadata.tableType === "junction" && entity) {
                 yield this.updateUpdatedAt(entity, metadata, queryRunner);
             }
