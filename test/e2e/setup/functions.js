@@ -5,7 +5,6 @@ async function execTest(name) {
         }
         await window.initPromise;
         const result = await window.runner.run(name);
-        console.log("LOG-d result", result);
         // await new Promise(r => setTimeout(r, 1000*30));
         done(result)
     }, name);

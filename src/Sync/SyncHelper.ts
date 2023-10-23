@@ -5,7 +5,7 @@ import {RelationMetadataArgs} from 'typeorm/metadata-args/RelationMetadataArgs';
 import {FindOperator, FindOperatorType, FindOptionsWhere, getMetadataArgsStorage} from "typeorm";
 import {JsonOperators} from "./JsonOperators";
 import {EntityContainer, IdContainer, MultipleSyncResults, SingleSyncResult, SyncContainer} from "./SyncTypes";
-import {JSONObject, ObjectHelper} from "@ainias42/js-helper";
+import { JSONArray, JSONObject, ObjectHelper } from "@ainias42/js-helper";
 
 export class SyncHelper {
     static getFieldDefinitionsFor(model: typeof SyncModel) {
@@ -286,7 +286,7 @@ export class SyncHelper {
             }
             return [];
         }
-        return modelContainer[modelId][result.id] ?? null;
+        return modelContainer[modelId][result.id ?? -1] ?? null;
     }
 
     static generateIdMap(modelContainer: EntityContainer | SyncContainer) {
@@ -329,9 +329,9 @@ export class SyncHelper {
         if ("___JSON_OPERATOR" in json) {
             switch (json.___JSON_OPERATOR) {
                 case JsonOperators.FIND_OPERATOR: {
-                    let value = json.args[1];
+                    let value = (json.args as JSONArray)[1];
                     const [type, , useParameter, multipleParameters] = json.args as [FindOperatorType, any, boolean, boolean];
-                    if (typeof value === "object" && !Array.isArray(value)) {
+                    if (typeof value === "object" && !Array.isArray(value) && value) {
                         value = this.convertJsonToWhere(value);
                     }
                     return new FindOperator(type, value, useParameter, multipleParameters);
@@ -340,7 +340,7 @@ export class SyncHelper {
         }
 
         return Object.entries(json).reduce((obj, [key, val]) => {
-            if (typeof val === "object" && !Array.isArray(val)) {
+            if (typeof val === "object" && !Array.isArray(val) && val) {
                 obj[key] = this.convertJsonToWhere(val);
             } else {
                 obj[key] = val;

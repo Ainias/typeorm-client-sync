@@ -2,11 +2,14 @@
 import {
     EntityMetadata,
     EntitySubscriberInterface,
-    EventSubscriber,
+    EventSubscriber, getMetadataArgsStorage,
     InsertEvent,
     OptimisticLockVersionMismatchError, QueryRunner, RemoveEvent,
-    UpdateEvent
+    UpdateEvent, ValueTransformer
 } from "typeorm";
+import { FileWriter } from "../decorators/FileColumn/FileWriter";
+import { FileTransformer } from "../decorators/FileColumn/FileTransformer";
+import { FileType } from "../decorators/FileColumn/FileType";
 
 @EventSubscriber()
 export class ServerSubscriber implements EntitySubscriberInterface {
@@ -33,17 +36,47 @@ export class ServerSubscriber implements EntitySubscriberInterface {
         }
 
         // Set version = version to not update version
-        await queryRunner.manager.createQueryBuilder().callListeners(false).update(ownerTarget).set({[ownerProperty]: new Date(), version: () => "version"}).where("id = :id", {id: ownerId}).execute();
-        await queryRunner.manager.createQueryBuilder().callListeners(false).update(inverseTarget).set({[inverseProperty]: new Date(), version: () => "version"}).where("id = :id", {id: inverseId}).execute();
+        await queryRunner.manager.createQueryBuilder().callListeners(false).update(ownerTarget).set({
+            [ownerProperty]: new Date(),
+            version: () => "version"
+        }).where("id = :id", {id: ownerId}).execute();
+        await queryRunner.manager.createQueryBuilder().callListeners(false).update(inverseTarget).set({
+            [inverseProperty]: new Date(),
+            version: () => "version"
+        }).where("id = :id", {id: inverseId}).execute();
     }
 
     /**
      * Called before post insertion.
      */
-    async beforeInsert({entity}: InsertEvent<any>) {
+    async beforeInsert({entity, metadata: {columns}}: InsertEvent<any>) {
         if (entity) {
             Reflect.set(entity, "updatedAt", new Date());
             Reflect.set(entity, "createdAt", new Date());
+
+            const promises = [];
+            columns.forEach(column => {
+                const transformer = column.transformer as FileTransformer | undefined;
+                if (transformer?.isFile) {
+                    let values: FileType | FileType[] | undefined = Reflect.get(entity, column.propertyName);
+                    if (values) {
+                        let single = false;
+                        if (!Array.isArray(values)) {
+                            values = [values];
+                            single = true;
+                        }
+                        promises.push(Promise.all(values.map(value => FileWriter.writeToFile(value.src, transformer.fileOptions.saveDirectory).then(newUrl => {
+                            return {...values, src: newUrl};
+                        }))).then(newValues => {
+                            if (single) {
+                                Reflect.set(entity, column.propertyName, newValues[0]);
+                            }
+                            Reflect.set(entity, column.propertyName, newValues);
+                        }));
+                    }
+                }
+            });
+            await Promise.all(promises);
         }
     }
 
@@ -63,7 +96,9 @@ export class ServerSubscriber implements EntitySubscriberInterface {
     /**
      * Called before entity update.
      */
-    beforeUpdate(event: UpdateEvent<any>) {
+    beforeUpdate(event: UpdateEvent<any>, ...other) {
+        console.log("LOG-d beforeUpdate event", event);
+
         // To know if an entity has a version number, we check if versionColumn
         // is defined in the metadatas of that entity.
         if (event.metadata.versionColumn && event.entity && event.databaseEntity) {
@@ -92,9 +127,5 @@ export class ServerSubscriber implements EntitySubscriberInterface {
     }
 
     beforeRemove({metadata, entity, ...other}: RemoveEvent<any>): Promise<any> | void {
-        if (metadata.tableName === "project_questions_question") {
-            debugger
-            console.log(entity, other);
-        }
     }
 }

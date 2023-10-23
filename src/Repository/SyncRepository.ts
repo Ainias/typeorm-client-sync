@@ -1,4 +1,4 @@
-import type {SyncModel} from "../SyncModel";
+import type { SyncModel } from "../SyncModel";
 import {
     DeepPartial,
     FindManyOptions,
@@ -7,15 +7,15 @@ import {
     Repository,
     SaveOptions
 } from "typeorm";
-import {Database} from "../Database";
-import {LastQueryDate} from "../LastQueryDate/LastQueryDate";
-import {SyncHelper} from "../Sync/SyncHelper";
-import {EntityContainer} from "../Sync/SyncTypes";
-import {JSONValue, PromiseWithHandlers} from "@ainias42/js-helper";
-import {MultipleInitialResult, MultipleInitialResultJSON} from "../InitialResult/MultipleInitialResult";
-import {SingleInitialResult, SingleInitialResultJSON} from "../InitialResult/SingleInitialResult";
-import {SyncResult} from "../Errors/SyncResult";
-import {SyncError} from "../Errors/SyncError";
+import { Database } from "../Database";
+import { LastQueryDate } from "../LastQueryDate/LastQueryDate";
+import { SyncHelper } from "../Sync/SyncHelper";
+import { EntityContainer } from "../Sync/SyncTypes";
+import { JSONValue, PromiseWithHandlers } from "@ainias42/js-helper";
+import { MultipleInitialResult, MultipleInitialResultJSON } from "../InitialResult/MultipleInitialResult";
+import { SingleInitialResult, SingleInitialResultJSON } from "../InitialResult/SingleInitialResult";
+import { SyncResult } from "../Errors/SyncResult";
+import { SyncError } from "../Errors/SyncError";
 
 type FunctionProperties2<T> = {
     [K in keyof T]: T[K] extends ((...args: any) => any) ? T[K] : never;
@@ -46,12 +46,13 @@ export function getSyncRepository<T extends typeof SyncModel>(model: T) {
     let syncRepository = db?.getRepository(model);
 
     if (!syncRepository && db) {
-
         const connection = db.getConnection();
-        const repository = connection.getRepository<InstanceType<T>>(model);
-        syncRepository = repository.extend(createSyncRepositoryExtension(model, repository, db));
-        db.setRepository(model, syncRepository);
-        db.setRepositoryPromise(model, Promise.resolve(syncRepository));
+        if (connection) {
+            const repository = connection.getRepository<InstanceType<T>>(model);
+            syncRepository = repository.extend(createSyncRepositoryExtension(model, repository, db));
+            db.setRepository(model, syncRepository);
+            db.setRepositoryPromise(model, Promise.resolve(syncRepository));
+        }
     }
     return syncRepository;
 }
@@ -100,7 +101,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         return save(entity as DeepPartial<InstanceType<Model>>, options, true) as Promise<Type>;
     }
 
-    function getRelevantSyncOptions(options?: FindManyOptions<InstanceType<Model>>){
+    function getRelevantSyncOptions(options?: FindManyOptions<InstanceType<Model>>) {
         const modelId = Database.getModelIdFor(model);
         const relevantSyncOptions: SyncJsonOptions = {
             where: SyncHelper.convertWhereToJson(options?.where ?? {}),
@@ -228,7 +229,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
             throw new Error("saveInitialResult should only be called on client!");
         }
 
-        if (!initialResult.isServer){
+        if (!initialResult.isServer) {
             return;
         }
 
@@ -237,7 +238,7 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
         }
         const [lastQueryDate] = await prepareSync(initialResult.query);
         const {syncContainer} = ("entities" in initialResult ? initialResult.entities : initialResult.entity) ?? {};
-        if (!syncContainer){
+        if (!syncContainer) {
             return;
         }
 
@@ -257,8 +258,8 @@ export function createSyncRepositoryExtension<Model extends typeof SyncModel>(mo
 
     async function removeAndSync(entity: InstanceType<Model>, options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model>>
     async function removeAndSync(entity: InstanceType<Model>[], options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model>[]>
-    async function removeAndSync(entity: InstanceType<Model>|InstanceType<Model>[], options?: SyncOptions<RemoveOptions>) : Promise<InstanceType<Model>|InstanceType<Model>[]>{
-        if (Array.isArray(entity) && entity.length === 0){
+    async function removeAndSync(entity: InstanceType<Model> | InstanceType<Model>[], options?: SyncOptions<RemoveOptions>): Promise<InstanceType<Model> | InstanceType<Model>[]> {
+        if (Array.isArray(entity) && entity.length === 0) {
             return [];
         }
 

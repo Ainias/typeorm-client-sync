@@ -1,4 +1,4 @@
-import {DataSource, DataSourceOptions, getMetadataArgsStorage} from 'typeorm';
+import { BaseEntity, DataSource, DataSourceOptions } from 'typeorm';
 import type {SyncModel} from './SyncModel';
 import {JSONValue, PromiseWithHandlers} from '@ainias42/js-helper';
 import {PersistError} from './Errors/PersistError';
@@ -73,7 +73,7 @@ export class Database {
         }
     }
 
-    static getInstance() {
+    static getInstance(): Database|undefined {
         return this.instance ?? undefined;
     }
 
@@ -122,7 +122,7 @@ export class Database {
     private async connect() {
         this.connectionTry++;
         const currentTry = this.connectionTry;
-        const entities = Object.values(this.options.entities);
+        const entities = Object.values(this.options.entities ?? {}) as (typeof BaseEntity|typeof SyncModel)[];
         entities.push(...Database.syncModels);
 
         if (this.isClientDatabase() && entities.indexOf(LastQueryDate) === -1) {
@@ -132,10 +132,13 @@ export class Database {
         const subscribers = this.options.subscribers ?? [];
         if (this.isServerDatabase()) {
             if (Array.isArray(subscribers)) {
+            console.log("LOG-d adding subscriber to DB as array");
                 subscribers.push(ServerSubscriber);
             } else {
+            console.log("LOG-d adding subscriber to DB as named object");
                 subscribers.typeorm_sync_subscriber = ServerSubscriber;
             }
+            console.log("LOG-d subscribers", subscribers);
         }
 
         this.options = {...this.options, entities, subscribers};
@@ -157,7 +160,7 @@ export class Database {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             window.queryDB = async (sql: string) => {
-                const res = await this.source.query(sql);
+                const res = await this.source?.query(sql);
                 console.log(res);
                 return res;
             };
@@ -253,9 +256,16 @@ export class Database {
     }
 
     async clearTables() {
+        if (!this.source){
+            return;
+        }
+
         const queryRunner = await this.source.createQueryRunner();
 
         const promises = (this.options.entities as typeof SyncModel[]).map(model => {
+            if (!this.source){
+                return undefined;
+            }
             const modelMetadata = this.source.getMetadata(model);
             const joinTablePromises = modelMetadata.relations.map(r => r.joinTableName).filter(name => !!name).map(name => queryRunner.clearTable(name));
             return Promise.all([...joinTablePromises, queryRunner.clearTable(modelMetadata.tableName)]);
