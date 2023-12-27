@@ -1,13 +1,13 @@
-import { BaseEntity, DataSource, DataSourceOptions } from 'typeorm';
-import type {SyncModel} from './SyncModel';
-import {JSONValue, PromiseWithHandlers} from '@ainias42/js-helper';
-import {PersistError} from './Errors/PersistError';
-import type {SyncResult} from './Errors/SyncResult';
-import {LastQueryDate} from './LastQueryDate/LastQueryDate';
-import {QueryError} from './Errors/QueryError';
-import {SyncContainer} from "./Sync/SyncTypes";
-import type {SyncJsonOptions, SyncRepository} from "./Repository/SyncRepository";
-import {ServerSubscriber} from "./Subscribers/ServerSubscriber";
+import { BaseEntity, DataSource, DataSourceOptions, QueryRunner } from 'typeorm';
+import type { SyncModel } from './SyncModel';
+import { JSONValue, PromiseWithHandlers } from '@ainias42/js-helper';
+import { PersistError } from './Errors/PersistError';
+import type { SyncResult } from './Errors/SyncResult';
+import { LastQueryDate } from './LastQueryDate/LastQueryDate';
+import { QueryError } from './Errors/QueryError';
+import { SyncContainer } from "./Sync/SyncTypes";
+import type { SyncJsonOptions, SyncRepository } from "./Repository/SyncRepository";
+import { ServerSubscriber } from "./Subscribers/ServerSubscriber";
 
 
 export type DatabaseOptions = DataSourceOptions & (
@@ -73,7 +73,7 @@ export class Database {
         }
     }
 
-    static getInstance(): Database|undefined {
+    static getInstance(): Database | undefined {
         return this.instance ?? undefined;
     }
 
@@ -122,7 +122,7 @@ export class Database {
     private async connect() {
         this.connectionTry++;
         const currentTry = this.connectionTry;
-        const entities = Object.values(this.options.entities ?? {}) as (typeof BaseEntity|typeof SyncModel)[];
+        const entities = Object.values(this.options.entities ?? {}) as (typeof BaseEntity | typeof SyncModel)[];
         entities.push(...Database.syncModels);
 
         if (this.isClientDatabase() && entities.indexOf(LastQueryDate) === -1) {
@@ -132,21 +132,45 @@ export class Database {
         const subscribers = this.options.subscribers ?? [];
         if (this.isServerDatabase()) {
             if (Array.isArray(subscribers)) {
-            console.log("LOG-d adding subscriber to DB as array");
                 subscribers.push(ServerSubscriber);
             } else {
-            console.log("LOG-d adding subscriber to DB as named object");
                 subscribers.typeorm_sync_subscriber = ServerSubscriber;
             }
-            console.log("LOG-d subscribers", subscribers);
         }
 
         this.options = {...this.options, entities, subscribers};
 
         Database.callDecoratorHandlers();
 
-        const source = new DataSource(this.options);
-        await source.initialize().catch(e => console.error("Initialization Error", e));
+        let source = new DataSource(this.options);
+        await source.initialize().catch(async (e) => {
+            if (this.isServerDatabase()) {
+                console.log("LOG-d isServerDatabase -> Throw");
+                throw e;
+            }
+
+            const deleteEverythingSource = new DataSource({
+                ...this.options,
+                synchronize: false,
+                migrationsRun: true,
+                migrationsTableName: "DELETE_EVERYTHING_MIGRATION_TABLE",
+                migrationsTransactionMode: "none",
+                migrations: [class DeleteMigrations0000000000001 {
+                    // eslint-disable-next-line class-methods-use-this
+                    up(queryRunner: QueryRunner) {
+                        return queryRunner.clearDatabase();
+                    }
+                }]
+            });
+            await deleteEverythingSource.initialize().then(() => deleteEverythingSource.destroy()).catch(e => {
+                if (e.message !== "no such table: DELETE_EVERYTHING_MIGRATION_TABLE") {
+                    throw e;
+                }
+            });
+            source = new DataSource(this.options);
+
+            return source.initialize();
+        });
         if (currentTry !== this.connectionTry) {
             await source.destroy();
             return;
@@ -256,14 +280,14 @@ export class Database {
     }
 
     async clearTables() {
-        if (!this.source){
+        if (!this.source) {
             return;
         }
 
         const queryRunner = await this.source.createQueryRunner();
 
         const promises = (this.options.entities as typeof SyncModel[]).map(model => {
-            if (!this.source){
+            if (!this.source) {
                 return undefined;
             }
             const modelMetadata = this.source.getMetadata(model);
@@ -273,7 +297,7 @@ export class Database {
         await Promise.all(promises);
     }
 
-    async removeFromServer(modelId: number, entityId: number|number[], extraData?: JSONValue) {
+    async removeFromServer(modelId: number, entityId: number | number[], extraData?: JSONValue) {
         const {isClient} = this.options;
 
         if (isClient) {

@@ -66,7 +66,7 @@ export class ServerSubscriber implements EntitySubscriberInterface {
                             single = true;
                         }
                         promises.push(Promise.all(values.map(value => FileWriter.writeToFile(value.src, transformer.fileOptions.saveDirectory).then(newUrl => {
-                            return {...values, src: newUrl};
+                            return {...value, src: newUrl};
                         }))).then(newValues => {
                             if (single) {
                                 Reflect.set(entity, column.propertyName, newValues[0]);
