@@ -97,8 +97,6 @@ export class ServerSubscriber implements EntitySubscriberInterface {
      * Called before entity update.
      */
     beforeUpdate(event: UpdateEvent<any>, ...other) {
-        console.log("LOG-d beforeUpdate event", event);
-
         // To know if an entity has a version number, we check if versionColumn
         // is defined in the metadatas of that entity.
         if (event.metadata.versionColumn && event.entity && event.databaseEntity) {

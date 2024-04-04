@@ -145,7 +145,7 @@ export class Database {
         let source = new DataSource(this.options);
         await source.initialize().catch(async (e) => {
             if (this.isServerDatabase()) {
-                console.log("LOG-d isServerDatabase -> Throw");
+                console.error("Fatal error while DB-Bootup, isServerDatabase -> Throw");
                 throw e;
             }
 
