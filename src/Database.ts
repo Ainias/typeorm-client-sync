@@ -155,7 +155,7 @@ export class Database {
                 migrationsRun: true,
                 migrationsTableName: "DELETE_EVERYTHING_MIGRATION_TABLE",
                 migrationsTransactionMode: "none",
-                migrations: [class DeleteMigrations0000000000001 {
+                migrations: [class DeleteMigrations1000000000000 {
                     // eslint-disable-next-line class-methods-use-this
                     up(queryRunner: QueryRunner) {
                         return queryRunner.clearDatabase();

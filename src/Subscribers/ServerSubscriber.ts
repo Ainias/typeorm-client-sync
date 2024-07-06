@@ -3,13 +3,14 @@ import {
     EntityMetadata,
     EntitySubscriberInterface,
     EventSubscriber, getMetadataArgsStorage,
-    InsertEvent,
+    InsertEvent, ObjectLiteral,
     OptimisticLockVersionMismatchError, QueryRunner, RemoveEvent,
     UpdateEvent, ValueTransformer
 } from "typeorm";
 import { FileWriter } from "../decorators/FileColumn/FileWriter";
 import { FileTransformer } from "../decorators/FileColumn/FileTransformer";
 import { FileType } from "../decorators/FileColumn/FileType";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 
 @EventSubscriber()
 export class ServerSubscriber implements EntitySubscriberInterface {
@@ -46,6 +47,33 @@ export class ServerSubscriber implements EntitySubscriberInterface {
         }).where("id = :id", {id: inverseId}).execute();
     }
 
+    async saveFiles(entity: ObjectLiteral, columns: ColumnMetadata[]) {
+        const promises = [];
+        columns.forEach(column => {
+            const transformer = column.transformer as FileTransformer | undefined;
+            if (transformer?.isFile) {
+                let values: FileType | FileType[] | undefined = Reflect.get(entity, column.propertyName);
+                if (values) {
+                    let single = false;
+                    if (!Array.isArray(values)) {
+                        values = [values];
+                        single = true;
+                    }
+                    promises.push(Promise.all(values.map(value => FileWriter.writeToFile(value.src, transformer.fileOptions.saveDirectory).then(newUrl => {
+                        return {...value, src: newUrl};
+                    }))).then(newValues => {
+                        if (single) {
+                            Reflect.set(entity, column.propertyName, newValues[0]);
+                        } else {
+                            Reflect.set(entity, column.propertyName, newValues);
+                        }
+                    }));
+                }
+            }
+        });
+        await Promise.all(promises);
+    }
+
     /**
      * Called before post insertion.
      */
@@ -54,29 +82,7 @@ export class ServerSubscriber implements EntitySubscriberInterface {
             Reflect.set(entity, "updatedAt", new Date());
             Reflect.set(entity, "createdAt", new Date());
 
-            const promises = [];
-            columns.forEach(column => {
-                const transformer = column.transformer as FileTransformer | undefined;
-                if (transformer?.isFile) {
-                    let values: FileType | FileType[] | undefined = Reflect.get(entity, column.propertyName);
-                    if (values) {
-                        let single = false;
-                        if (!Array.isArray(values)) {
-                            values = [values];
-                            single = true;
-                        }
-                        promises.push(Promise.all(values.map(value => FileWriter.writeToFile(value.src, transformer.fileOptions.saveDirectory).then(newUrl => {
-                            return {...value, src: newUrl};
-                        }))).then(newValues => {
-                            if (single) {
-                                Reflect.set(entity, column.propertyName, newValues[0]);
-                            }
-                            Reflect.set(entity, column.propertyName, newValues);
-                        }));
-                    }
-                }
-            });
-            await Promise.all(promises);
+            await this.saveFiles(entity, columns);
         }
     }
 
@@ -96,7 +102,7 @@ export class ServerSubscriber implements EntitySubscriberInterface {
     /**
      * Called before entity update.
      */
-    beforeUpdate(event: UpdateEvent<any>, ...other) {
+    async beforeUpdate(event: UpdateEvent<any>) {
         // To know if an entity has a version number, we check if versionColumn
         // is defined in the metadatas of that entity.
         if (event.metadata.versionColumn && event.entity && event.databaseEntity) {
@@ -122,8 +128,13 @@ export class ServerSubscriber implements EntitySubscriberInterface {
         if (event.entity) {
             Reflect.set(event.entity, "updatedAt", new Date());
         }
+
+        const {columns} = event.metadata;
+        const {entity} = event;
+        await this.saveFiles(entity, columns);
     }
 
     beforeRemove({metadata, entity, ...other}: RemoveEvent<any>): Promise<any> | void {
+        // TODO Remove files from server (?)
     }
 }

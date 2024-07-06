@@ -20,7 +20,9 @@ export class FileWriter {
 
         const seed = randomBytes(20);
         const now = new Date();
-        const name = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${fileType}-${createHash('sha1').update(seed).digest('hex')}.${fileEnding}`;
+
+        // Month is 0-based. Add 1 to get 1-12
+        const name = `${now.getUTCFullYear()}-${now.getUTCMonth()+1}-${now.getUTCDate()}-${fileType}-${createHash('sha1').update(seed).digest('hex')}.${fileEnding}`;
 
         const dataBuffer = Buffer.from(data, 'base64');
         const inputStream = new Readable();
