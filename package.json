@@ -29,7 +29,7 @@
   "peerDependencies": {
     "@ainias42/js-helper": ">=0.8.10",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.3.17"
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "typescript": "^4.6.3",
@@ -55,6 +55,6 @@
     "wdio-chromedriver-service": "^7.3.2",
     "webdriverio": "^7.19.7",
     "mysql2": "^2.3.3",
-    "typeorm": "git+https://github.com/Ainias/typeorm.git#deployment3"
+    "typeorm": "^0.3.20"
   }
 }

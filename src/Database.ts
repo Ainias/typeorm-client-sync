@@ -45,7 +45,7 @@ export class Database {
         Database.decoratorHandlers.forEach(handler => handler());
     }
 
-    private static callDecoratorHandlers() {
+    static callDecoratorHandlers() {
         if (!this.decoratorHandlersCalled) {
             Database.decoratorHandlers.forEach(handler => handler());
             this.decoratorHandlersCalled = true;

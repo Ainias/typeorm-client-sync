@@ -86,9 +86,9 @@ export class ServerSubscriber implements EntitySubscriberInterface {
         }
     }
 
-    async afterInsert({entity, metadata, queryRunner}: InsertEvent<any>) {
-        if (metadata.isJunction && metadata.tableType === "junction" && entity) {
-            await this.updateUpdatedAt(entity, metadata, queryRunner);
+    async afterInsert({entityId, metadata, queryRunner}: InsertEvent<any>) {
+        if (metadata.isJunction && metadata.tableType === "junction" && entityId) {
+            await this.updateUpdatedAt(entityId, metadata, queryRunner);
         }
     }
 

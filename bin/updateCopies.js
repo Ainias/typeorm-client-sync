@@ -6,7 +6,7 @@ const packageName = require("../package.json").name;
 
 let pathsToProjects = [
     "/Users/sguenter/Projekte/Privat/dnd",
-    "/Users/sguenter/Projekte/Privat/bat",
+    "/Users/sguenter/Projekte/Privat/users-next",
     // "/home/silas/Projekte/web/smd-mail",
     // "/home/silas/Projekte/Web/wordRotator",
     // "/home/silas/Projekte/Web/stories",
