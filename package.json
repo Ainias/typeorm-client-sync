@@ -1,6 +1,6 @@
 {
   "name": "@ainias42/typeorm-sync",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "synchronization between a server and client typeorm instance",
   "main": "dist/index.js",
   "scripts": {
